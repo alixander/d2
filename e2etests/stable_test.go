@@ -904,6 +904,7 @@ x: {
     stroke: "#53C0D8"
     stroke-width: 5
     shadow: true
+		bold: false
 		italic: true
   }
 }
@@ -915,7 +916,7 @@ y: {
     fill: red
     3d: true
 		stroke: black
-		bold: true
+		bold: false
   }
 }
 
