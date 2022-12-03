@@ -1,0 +1,388 @@
+{
+  "name": "",
+  "shapes": [
+    {
+      "id": "Turnstile",
+      "type": "",
+      "pos": {
+        "x": 0,
+        "y": 0
+      },
+      "width": 526,
+      "height": 321,
+      "opacity": 1,
+      "strokeDash": 0,
+      "strokeWidth": 2,
+      "borderRadius": 0,
+      "fill": "#E3E9FD",
+      "stroke": "#0D32B2",
+      "shadow": false,
+      "3d": false,
+      "multiple": false,
+      "tooltip": "",
+      "link": "",
+      "icon": null,
+      "iconPosition": "",
+      "fields": null,
+      "methods": null,
+      "columns": null,
+      "label": "Turnstile",
+      "fontSize": 28,
+      "fontFamily": "DEFAULT",
+      "language": "",
+      "color": "#0A0F25",
+      "italic": false,
+      "bold": true,
+      "underline": false,
+      "labelWidth": 109,
+      "labelHeight": 41,
+      "labelPosition": "INSIDE_TOP_CENTER",
+      "zIndex": 0,
+      "level": 1
+    },
+    {
+      "id": "Turnstile.l",
+      "type": "oval",
+      "pos": {
+        "x": 50,
+        "y": 58
+      },
+      "width": 155,
+      "height": 155,
+      "opacity": 1,
+      "strokeDash": 0,
+      "strokeWidth": 2,
+      "borderRadius": 0,
+      "fill": "#fd7373",
+      "stroke": "#0D32B2",
+      "shadow": false,
+      "3d": false,
+      "multiple": false,
+      "tooltip": "",
+      "link": "",
+      "icon": null,
+      "iconPosition": "",
+      "fields": null,
+      "methods": null,
+      "columns": null,
+      "label": "Locked",
+      "fontSize": 16,
+      "fontFamily": "DEFAULT",
+      "language": "",
+      "color": "#0A0F25",
+      "italic": false,
+      "bold": true,
+      "underline": false,
+      "labelWidth": 55,
+      "labelHeight": 26,
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
+      "zIndex": 0,
+      "level": 2
+    },
+    {
+      "id": "Turnstile.u",
+      "type": "oval",
+      "pos": {
+        "x": 305,
+        "y": 50
+      },
+      "width": 171,
+      "height": 171,
+      "opacity": 1,
+      "strokeDash": 0,
+      "strokeWidth": 2,
+      "borderRadius": 0,
+      "fill": "#59c061",
+      "stroke": "#0D32B2",
+      "shadow": false,
+      "3d": false,
+      "multiple": false,
+      "tooltip": "",
+      "link": "",
+      "icon": null,
+      "iconPosition": "",
+      "fields": null,
+      "methods": null,
+      "columns": null,
+      "label": "Unlocked",
+      "fontSize": 16,
+      "fontFamily": "DEFAULT",
+      "language": "",
+      "color": "#0A0F25",
+      "italic": false,
+      "bold": true,
+      "underline": false,
+      "labelWidth": 71,
+      "labelHeight": 26,
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
+      "zIndex": 0,
+      "level": 2
+    }
+  ],
+  "connections": [
+    {
+      "id": "Turnstile.(l -> l)[0]",
+      "src": "Turnstile.l",
+      "srcArrow": "none",
+      "srcLabel": "",
+      "dst": "Turnstile.l",
+      "dstArrow": "triangle",
+      "dstLabel": "",
+      "opacity": 1,
+      "strokeDash": 0,
+      "strokeWidth": 2,
+      "stroke": "#0D32B2",
+      "label": "push",
+      "fontSize": 16,
+      "fontFamily": "DEFAULT",
+      "language": "",
+      "color": "#676C7E",
+      "italic": true,
+      "bold": false,
+      "underline": false,
+      "labelWidth": 33,
+      "labelHeight": 21,
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
+      "labelPercentage": 0,
+      "route": [
+        {
+          "x": 85,
+          "y": 200
+        },
+        {
+          "x": 57,
+          "y": 241.86666666666667
+        },
+        {
+          "x": 50,
+          "y": 254.3
+        },
+        {
+          "x": 50,
+          "y": 257.25
+        },
+        {
+          "x": 50,
+          "y": 260.20000000000005
+        },
+        {
+          "x": 65.5,
+          "y": 264.1333333333333
+        },
+        {
+          "x": 88.75,
+          "y": 267.08333333333337
+        },
+        {
+          "x": 112,
+          "y": 270.03333333333336
+        },
+        {
+          "x": 143,
+          "y": 270.03333333333336
+        },
+        {
+          "x": 166.25,
+          "y": 267.08333333333337
+        },
+        {
+          "x": 189.5,
+          "y": 264.1333333333333
+        },
+        {
+          "x": 198,
+          "y": 241.86666666666667
+        },
+        {
+          "x": 170,
+          "y": 200
+        }
+      ],
+      "isCurve": true,
+      "animated": false,
+      "tooltip": "",
+      "icon": null,
+      "zIndex": 0
+    },
+    {
+      "id": "Turnstile.(u -> l)[0]",
+      "src": "Turnstile.u",
+      "srcArrow": "none",
+      "srcLabel": "",
+      "dst": "Turnstile.l",
+      "dstArrow": "triangle",
+      "dstLabel": "",
+      "opacity": 1,
+      "strokeDash": 0,
+      "strokeWidth": 2,
+      "stroke": "#0D32B2",
+      "label": "push",
+      "fontSize": 16,
+      "fontFamily": "DEFAULT",
+      "language": "",
+      "color": "#676C7E",
+      "italic": true,
+      "bold": false,
+      "underline": false,
+      "labelWidth": 33,
+      "labelHeight": 21,
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
+      "labelPercentage": 0,
+      "route": [
+        {
+          "x": 315,
+          "y": 176
+        },
+        {
+          "x": 267,
+          "y": 201.8
+        },
+        {
+          "x": 243,
+          "y": 201.2
+        },
+        {
+          "x": 195,
+          "y": 173
+        }
+      ],
+      "isCurve": true,
+      "animated": false,
+      "tooltip": "",
+      "icon": null,
+      "zIndex": 0
+    },
+    {
+      "id": "Turnstile.(l -> u)[0]",
+      "src": "Turnstile.l",
+      "srcArrow": "none",
+      "srcLabel": "",
+      "dst": "Turnstile.u",
+      "dstArrow": "triangle",
+      "dstLabel": "",
+      "opacity": 1,
+      "strokeDash": 0,
+      "strokeWidth": 2,
+      "stroke": "#0D32B2",
+      "label": "coin",
+      "fontSize": 16,
+      "fontFamily": "DEFAULT",
+      "language": "",
+      "color": "#676C7E",
+      "italic": true,
+      "bold": false,
+      "underline": false,
+      "labelWidth": 27,
+      "labelHeight": 21,
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
+      "labelPercentage": 0,
+      "route": [
+        {
+          "x": 200,
+          "y": 108
+        },
+        {
+          "x": 244,
+          "y": 91.8
+        },
+        {
+          "x": 266,
+          "y": 91.6
+        },
+        {
+          "x": 310,
+          "y": 107
+        }
+      ],
+      "isCurve": true,
+      "animated": false,
+      "tooltip": "",
+      "icon": null,
+      "zIndex": 0
+    },
+    {
+      "id": "Turnstile.(u -> u)[0]",
+      "src": "Turnstile.u",
+      "srcArrow": "none",
+      "srcLabel": "",
+      "dst": "Turnstile.u",
+      "dstArrow": "triangle",
+      "dstLabel": "",
+      "opacity": 1,
+      "strokeDash": 0,
+      "strokeWidth": 2,
+      "stroke": "#0D32B2",
+      "label": "coin",
+      "fontSize": 16,
+      "fontFamily": "DEFAULT",
+      "language": "",
+      "color": "#676C7E",
+      "italic": true,
+      "bold": false,
+      "underline": false,
+      "labelWidth": 27,
+      "labelHeight": 21,
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
+      "labelPercentage": 0,
+      "route": [
+        {
+          "x": 341,
+          "y": 206
+        },
+        {
+          "x": 312.2,
+          "y": 247.33333333333334
+        },
+        {
+          "x": 305,
+          "y": 259.5
+        },
+        {
+          "x": 305,
+          "y": 262.25
+        },
+        {
+          "x": 305,
+          "y": 265
+        },
+        {
+          "x": 322.1,
+          "y": 268.66666666666663
+        },
+        {
+          "x": 347.75,
+          "y": 271.41666666666663
+        },
+        {
+          "x": 373.4,
+          "y": 274.1666666666667
+        },
+        {
+          "x": 407.6,
+          "y": 274.1666666666667
+        },
+        {
+          "x": 433.25,
+          "y": 271.41666666666663
+        },
+        {
+          "x": 458.9,
+          "y": 268.66666666666663
+        },
+        {
+          "x": 468.8,
+          "y": 247.33333333333334
+        },
+        {
+          "x": 440,
+          "y": 206
+        }
+      ],
+      "isCurve": true,
+      "animated": false,
+      "tooltip": "",
+      "icon": null,
+      "zIndex": 0
+    }
+  ]
+}
