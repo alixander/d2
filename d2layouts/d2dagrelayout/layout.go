@@ -48,6 +48,7 @@ type dagreGraphAttrs struct {
 	nodesep int
 	// graph direction: tb (top to bottom)| bt | lr | rl
 	rankdir string
+	align   string
 }
 
 func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
@@ -70,14 +71,19 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 	switch g.Root.Attributes.Direction.Value {
 	case "down":
 		rootAttrs.rankdir = "TB"
+		rootAttrs.align = "UL"
 	case "right":
 		rootAttrs.rankdir = "LR"
+		rootAttrs.align = "UL"
 	case "left":
 		rootAttrs.rankdir = "RL"
+		rootAttrs.align = "BR"
 	case "up":
 		rootAttrs.rankdir = "BT"
+		rootAttrs.align = "BR"
 	default:
 		rootAttrs.rankdir = "TB"
+		rootAttrs.align = "UL"
 	}
 	configJS := setGraphAttrs(rootAttrs)
 	if _, err := v8ctx.RunScript(configJS, "config.js"); err != nil {
@@ -245,12 +251,14 @@ func setGraphAttrs(attrs dagreGraphAttrs) string {
   edgesep: %d,
   nodesep: %d,
   rankdir: "%s",
+  align: "%s",
 });
 `,
 		attrs.ranksep,
 		attrs.edgesep,
 		attrs.nodesep,
 		attrs.rankdir,
+		attrs.align,
 	)
 }
 

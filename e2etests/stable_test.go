@@ -1218,6 +1218,19 @@ foo baz: Foo Baz
 foo baz -> hello
 `,
 		},
+		{
+			name: "align",
+			script: `Example: {
+  User1: {
+    D1 -> D2 -> D3
+  }
+
+  User2: {
+    D1 -> D2 -> D3 -> D4 -> D5
+  }
+}
+`,
+		},
 	}
 
 	runa(t, tcs)
