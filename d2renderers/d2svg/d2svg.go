@@ -5,7 +5,6 @@ package d2svg
 import (
 	"bytes"
 	_ "embed"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -794,7 +793,7 @@ func drawShape(writer io.Writer, targetShape d2target.Shape) (labelMask string, 
 
 func escapeText(text string) string {
 	buf := new(bytes.Buffer)
-	_ = xml.EscapeText(buf, []byte(text))
+	// _ = xml.EscapeText(buf, []byte(text))
 	return buf.String()
 }
 

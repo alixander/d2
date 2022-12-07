@@ -18,8 +18,8 @@ import (
 	"oss.terrastruct.com/util-go/diff"
 
 	"oss.terrastruct.com/d2/d2graph"
-	"oss.terrastruct.com/d2/d2layouts/d2dagrelayout"
-	"oss.terrastruct.com/d2/d2layouts/d2elklayout"
+	// "oss.terrastruct.com/d2/d2layouts/d2dagrelayout"
+	// "oss.terrastruct.com/d2/d2layouts/d2elklayout"
 	"oss.terrastruct.com/d2/d2lib"
 	"oss.terrastruct.com/d2/d2renderers/d2svg"
 	"oss.terrastruct.com/d2/d2target"
@@ -102,11 +102,11 @@ func run(t *testing.T, tc testCase) {
 
 	for _, layoutName := range layoutsTested {
 		var layout func(context.Context, *d2graph.Graph) error
-		if layoutName == "dagre" {
-			layout = d2dagrelayout.Layout
-		} else if layoutName == "elk" {
-			layout = d2elklayout.Layout
-		}
+		// if layoutName == "dagre" {
+		//   layout = d2dagrelayout.Layout
+		// } else if layoutName == "elk" {
+		//   layout = d2elklayout.Layout
+		// }
 		diagram, _, err := d2lib.Compile(ctx, tc.script, &d2lib.CompileOptions{
 			Ruler:   ruler,
 			ThemeID: 0,

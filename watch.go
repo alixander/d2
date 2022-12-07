@@ -26,7 +26,6 @@ import (
 	"oss.terrastruct.com/util-go/xmain"
 
 	"oss.terrastruct.com/d2/d2plugin"
-	"oss.terrastruct.com/d2/lib/png"
 )
 
 // Enabled with the build tag "dev".
@@ -46,7 +45,6 @@ type watcherOpts struct {
 	inputPath    string
 	outputPath   string
 	bundle       bool
-	pw           png.Playwright
 }
 
 type watcher struct {
@@ -236,43 +234,43 @@ func (w *watcher) watchLoop(ctx context.Context) error {
 				lastModified = mt
 				w.requestCompile()
 			}
-		case ev, ok := <-w.fw.Events:
-			if !ok {
-				return errors.New("fsnotify watcher closed")
-			}
-			w.ms.Log.Debug.Printf("received file system event %v", ev)
-			mt, err := w.ensureAddWatch(ctx)
-			if err != nil {
-				return err
-			}
-			if ev.Op == fsnotify.Chmod {
-				if mt.Equal(lastModified) {
-					// Benign Chmod.
-					// See https://github.com/fsnotify/fsnotify/issues/15
-					continue
-				}
-				// We missed changes.
-				lastModified = mt
-			}
-			// The purpose of eatBurstTimer is to wait at least 16 milliseconds after a sequence of
-			// events to ensure that whomever is editing the file is now done.
-			//
-			// For example, On macOS editing with neovim, every write I see a chmod immediately
-			// followed by a write followed by another chmod. We don't want the three events to
-			// be treated as two or three compilations, we want them to be batched into one.
-			//
-			// Another example would be a very large file where one logical edit becomes write
-			// events. We wouldn't want to try to compile an incomplete file and then report a
-			// misleading error.
-			eatBurstTimer.Reset(time.Millisecond * 16)
+		// case ev, ok := <-w.fw.Events:
+		//   if !ok {
+		//     return errors.New("fsnotify watcher closed")
+		//   }
+		//   w.ms.Log.Debug.Printf("received file system event %v", ev)
+		//   mt, err := w.ensureAddWatch(ctx)
+		//   if err != nil {
+		//     return err
+		//   }
+		//   if ev.Op == fsnotify.Chmod {
+		//     if mt.Equal(lastModified) {
+		//       // Benign Chmod.
+		//       // See https://github.com/fsnotify/fsnotify/issues/15
+		//       continue
+		//     }
+		//     // We missed changes.
+		//     lastModified = mt
+		//   }
+		//   // The purpose of eatBurstTimer is to wait at least 16 milliseconds after a sequence of
+		//   // events to ensure that whomever is editing the file is now done.
+		//   //
+		//   // For example, On macOS editing with neovim, every write I see a chmod immediately
+		//   // followed by a write followed by another chmod. We don't want the three events to
+		//   // be treated as two or three compilations, we want them to be batched into one.
+		//   //
+		//   // Another example would be a very large file where one logical edit becomes write
+		//   // events. We wouldn't want to try to compile an incomplete file and then report a
+		//   // misleading error.
+		//   eatBurstTimer.Reset(time.Millisecond * 16)
 		case <-eatBurstTimer.C:
 			w.ms.Log.Info.Printf("detected change in %v: recompiling...", w.inputPath)
 			w.requestCompile()
-		case err, ok := <-w.fw.Errors:
-			if !ok {
-				return errors.New("fsnotify watcher closed")
-			}
-			w.ms.Log.Error.Printf("fsnotify error: %v", err)
+		// case err, ok := <-w.fw.Errors:
+		//   if !ok {
+		//     return errors.New("fsnotify watcher closed")
+		//   }
+		//   w.ms.Log.Error.Printf("fsnotify error: %v", err)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -341,20 +339,20 @@ func (w *watcher) compileLoop(ctx context.Context) error {
 			recompiledPrefix = "re"
 		}
 
-		if filepath.Ext(w.outputPath) == ".png" && !w.pw.Browser.IsConnected() {
-			newPW, err := w.pw.RestartBrowser()
-			if err != nil {
-				broadcastErr := fmt.Errorf("issue encountered with PNG exporter: %w", err)
-				w.ms.Log.Error.Print(broadcastErr)
-				w.broadcast(&compileResult{
-					Err: broadcastErr.Error(),
-				})
-				continue
-			}
-			w.pw = newPW
-		}
+		// if filepath.Ext(w.outputPath) == ".png" && !w.pw.Browser.IsConnected() {
+		//   newPW, err := w.pw.RestartBrowser()
+		//   if err != nil {
+		//     broadcastErr := fmt.Errorf("issue encountered with PNG exporter: %w", err)
+		//     w.ms.Log.Error.Print(broadcastErr)
+		//     w.broadcast(&compileResult{
+		//       Err: broadcastErr.Error(),
+		//     })
+		//     continue
+		//   }
+		//   w.pw = newPW
+		// }
 
-		svg, _, err := compile(ctx, w.ms, w.layoutPlugin, w.themeID, w.inputPath, w.outputPath, w.bundle, w.pw.Page)
+		svg, _, err := compile(ctx, w.ms, w.layoutPlugin, w.themeID, w.inputPath, w.outputPath, w.bundle)
 		errs := ""
 		if err != nil {
 			if len(svg) > 0 {

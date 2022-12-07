@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/playwright-community/playwright-go"
 	"github.com/spf13/pflag"
 	"go.uber.org/multierr"
 
@@ -22,13 +20,10 @@ import (
 	"oss.terrastruct.com/d2/d2themes"
 	"oss.terrastruct.com/d2/d2themes/d2themescatalog"
 	"oss.terrastruct.com/d2/lib/imgbundler"
-	ctxlog "oss.terrastruct.com/d2/lib/log"
-	"oss.terrastruct.com/d2/lib/png"
+
+	// ctxlog "oss.terrastruct.com/d2/lib/log"
 	"oss.terrastruct.com/d2/lib/textmeasure"
 	"oss.terrastruct.com/d2/lib/version"
-
-	"cdr.dev/slog"
-	"cdr.dev/slog/sloggers/sloghuman"
 )
 
 func main() {
@@ -37,7 +32,7 @@ func main() {
 
 func run(ctx context.Context, ms *xmain.State) (err error) {
 	// :(
-	ctx = DiscardSlog(ctx)
+	// ctx = DiscardSlog(ctx)
 
 	// These should be kept up-to-date with the d2 man page
 	watchFlag, err := ms.Opts.Bool("D2_WATCH", "watch", "w", false, "watch for changes to input and live reload. Use $HOST and $PORT to specify the listening address.\n(default localhost:0, which is will open on a randomly available local port).")
@@ -139,20 +134,6 @@ func run(ctx context.Context, ms *xmain.State) (err error) {
 	}
 	ms.Log.Debug.Printf("using layout plugin %s (%s)", *layoutFlag, pluginLocation)
 
-	var pw png.Playwright
-	if filepath.Ext(outputPath) == ".png" {
-		pw, err = png.InitPlaywright()
-		if err != nil {
-			return err
-		}
-		defer func() {
-			cleanupErr := pw.Cleanup()
-			if err == nil {
-				err = cleanupErr
-			}
-		}()
-	}
-
 	if *watchFlag {
 		if inputPath == "-" {
 			return xmain.UsageErrorf("-w[atch] cannot be combined with reading input from stdin")
@@ -166,7 +147,6 @@ func run(ctx context.Context, ms *xmain.State) (err error) {
 			inputPath:    inputPath,
 			outputPath:   outputPath,
 			bundle:       *bundleFlag,
-			pw:           pw,
 		})
 		if err != nil {
 			return err
@@ -177,7 +157,7 @@ func run(ctx context.Context, ms *xmain.State) (err error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute*2)
 	defer cancel()
 
-	_, written, err := compile(ctx, ms, plugin, *themeFlag, inputPath, outputPath, *bundleFlag, pw.Page)
+	_, written, err := compile(ctx, ms, plugin, *themeFlag, inputPath, outputPath, *bundleFlag)
 	if err != nil {
 		if written {
 			return fmt.Errorf("failed to fully compile (partial render written): %w", err)
@@ -188,7 +168,7 @@ func run(ctx context.Context, ms *xmain.State) (err error) {
 	return nil
 }
 
-func compile(ctx context.Context, ms *xmain.State, plugin d2plugin.Plugin, themeID int64, inputPath, outputPath string, bundle bool, page playwright.Page) (_ []byte, written bool, _ error) {
+func compile(ctx context.Context, ms *xmain.State, plugin d2plugin.Plugin, themeID int64, inputPath, outputPath string, bundle bool) (_ []byte, written bool, _ error) {
 	input, err := ms.ReadPath(inputPath)
 	if err != nil {
 		return nil, false, err
@@ -226,19 +206,6 @@ func compile(ctx context.Context, ms *xmain.State, plugin d2plugin.Plugin, theme
 	}
 
 	out := svg
-	if filepath.Ext(outputPath) == ".png" {
-		svg := svg
-		if !bundle {
-			var bundleErr2 error
-			svg, bundleErr2 = imgbundler.BundleRemote(ctx, ms, svg)
-			bundleErr = multierr.Combine(bundleErr, bundleErr2)
-		}
-
-		out, err = png.ConvertSVG(ms, page, svg)
-		if err != nil {
-			return svg, false, err
-		}
-	}
 
 	err = ms.WritePath(outputPath, out)
 	if err != nil {
@@ -259,6 +226,6 @@ func renameExt(fp string, newExt string) string {
 }
 
 // TODO: remove after removing slog
-func DiscardSlog(ctx context.Context) context.Context {
-	return ctxlog.With(ctx, slog.Make(sloghuman.Sink(io.Discard)))
-}
+// func DiscardSlog(ctx context.Context) context.Context {
+//   return ctxlog.With(ctx, slog.Make(sloghuman.Sink(io.Discard)))
+// }
