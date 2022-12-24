@@ -1,12 +1,16 @@
 package d2target
 
 import (
+	"encoding/json"
+	"fmt"
+	"hash/fnv"
 	"math"
 	"net/url"
 	"strings"
 
 	"oss.terrastruct.com/util-go/go2"
 
+	"oss.terrastruct.com/d2/d2renderers/d2fonts"
 	"oss.terrastruct.com/d2/d2themes"
 	"oss.terrastruct.com/d2/lib/geo"
 	"oss.terrastruct.com/d2/lib/label"
@@ -19,18 +23,36 @@ const (
 )
 
 type Diagram struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+	Name        string              `json:"name"`
+	Description string              `json:"description,omitempty"`
+	FontFamily  *d2fonts.FontFamily `json:"fontFamily,omitempty"`
 
 	Shapes      []Shape      `json:"shapes"`
 	Connections []Connection `json:"connections"`
 }
 
+func (diagram Diagram) HashID() (string, error) {
+	b1, err := json.Marshal(diagram.Shapes)
+	if err != nil {
+		return "", err
+	}
+	b2, err := json.Marshal(diagram.Connections)
+	if err != nil {
+		return "", err
+	}
+	h := fnv.New32a()
+	h.Write(append(b1, b2...))
+	return fmt.Sprint(h.Sum32()), nil
+}
+
 func (diagram Diagram) BoundingBox() (topLeft, bottomRight Point) {
-	x1 := int(math.MaxInt64)
-	y1 := int(math.MaxInt64)
-	x2 := int(-math.MaxInt64)
-	y2 := int(-math.MaxInt64)
+	if len(diagram.Shapes) == 0 {
+		return Point{0, 0}, Point{0, 0}
+	}
+	x1 := int(math.MaxInt32)
+	y1 := int(math.MaxInt32)
+	x2 := int(math.MinInt32)
+	y2 := int(math.MinInt32)
 
 	for _, targetShape := range diagram.Shapes {
 		x1 = go2.Min(x1, targetShape.Pos.X)
@@ -111,6 +133,10 @@ type Shape struct {
 	Icon         *url.URL `json:"icon"`
 	IconPosition string   `json:"iconPosition"`
 
+	// Whether the shape should allow shapes behind it to bleed through
+	// Currently just used for sequence diagram groups
+	Blend bool `json:"blend"`
+
 	Class
 	SQLTable
 
@@ -183,6 +209,7 @@ type Connection struct {
 	StrokeDash  float64 `json:"strokeDash"`
 	StrokeWidth int     `json:"strokeWidth"`
 	Stroke      string  `json:"stroke"`
+	Fill        string  `json:"fill,omitempty"`
 
 	Text
 	LabelPosition   string  `json:"labelPosition"`

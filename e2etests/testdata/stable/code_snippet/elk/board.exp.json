@@ -1,5 +1,6 @@
 {
   "name": "",
+  "fontFamily": "SourceSansPro",
   "shapes": [
     {
       "id": "hey",
@@ -23,6 +24,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -61,6 +63,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -82,7 +85,7 @@
       "id": "y",
       "type": "",
       "pos": {
-        "x": 333,
+        "x": 332,
         "y": 504
       },
       "width": 114,
@@ -100,6 +103,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,

@@ -252,11 +252,8 @@ func (c *compiler) compileKey(obj *d2graph.Object, m *d2ast.Map, mk *d2ast.Key) 
 		c.errorf(mk.Range.Start, mk.Range.End, err.Error())
 		return
 	}
-	if resolvedObj != obj {
-		obj = resolvedObj
-	}
 
-	parent := obj
+	parent := resolvedObj
 	if len(resolvedIDA) > 0 {
 		unresolvedObj := obj
 		obj = parent.EnsureChild(resolvedIDA)
@@ -365,6 +362,9 @@ func (c *compiler) applyScalar(attrs *d2graph.Attributes, reserved string, box d
 			return
 		}
 		attrs.Direction.Value = scalar.ScalarString()
+		return
+	case "constraint":
+		// Compilation for shape-specific keywords happens elsewhere
 		return
 	}
 
@@ -583,16 +583,25 @@ func (c *compiler) compileShapes(obj *d2graph.Object) {
 		c.compileShapes(obj)
 	}
 
-	for _, obj := range obj.ChildrenArray {
-		switch obj.Attributes.Shape.Value {
+	for i := 0; i < len(obj.ChildrenArray); i++ {
+		ch := obj.ChildrenArray[i]
+		switch ch.Attributes.Shape.Value {
 		case d2target.ShapeClass, d2target.ShapeSQLTable:
-			flattenContainer(obj.Graph, obj)
+			flattenContainer(obj.Graph, ch)
 		}
-		if obj.IDVal == "style" {
-			obj.Parent.Attributes.Style = obj.Attributes.Style
+		if ch.IDVal == "style" {
+			obj.Attributes.Style = ch.Attributes.Style
 			if obj.Graph != nil {
-				flattenContainer(obj.Graph, obj)
-				removeObject(obj.Graph, obj)
+				flattenContainer(obj.Graph, ch)
+				for i := 0; i < len(obj.Graph.Objects); i++ {
+					if obj.Graph.Objects[i] == ch {
+						obj.Graph.Objects = append(obj.Graph.Objects[:i], obj.Graph.Objects[i+1:]...)
+						break
+					}
+				}
+				delete(obj.Children, ch.ID)
+				obj.ChildrenArray = append(obj.ChildrenArray[:i], obj.ChildrenArray[i+1:]...)
+				i--
 			}
 		}
 	}
@@ -669,8 +678,8 @@ func (c *compiler) compileSQLTable(obj *d2graph.Object) {
 			typ = ""
 		}
 		d2Col := d2target.SQLColumn{
-			Name: col.IDVal,
-			Type: typ,
+			Name: d2target.Text{Label: col.IDVal},
+			Type: d2target.Text{Label: typ},
 		}
 		// The only map a sql table field could have is to specify constraint
 		if col.Map != nil {
@@ -679,6 +688,10 @@ func (c *compiler) compileSQLTable(obj *d2graph.Object) {
 					continue
 				}
 				if n.MapKey.Key.Path[0].Unbox().ScalarString() == "constraint" {
+					if n.MapKey.Value.StringBox().Unbox() == nil {
+						c.errorf(n.MapKey.GetRange().Start, n.MapKey.GetRange().End, "constraint value must be a string")
+						return
+					}
 					d2Col.Constraint = n.MapKey.Value.StringBox().Unbox().ScalarString()
 				}
 			}
@@ -703,23 +716,6 @@ func (c *compiler) compileSQLTable(obj *d2graph.Object) {
 		}
 
 		obj.SQLTable.Columns = append(obj.SQLTable.Columns, d2Col)
-	}
-}
-
-// TODO too similar to flattenContainer, should reconcile in a refactor
-func removeObject(g *d2graph.Graph, obj *d2graph.Object) {
-	for i := 0; i < len(obj.Graph.Objects); i++ {
-		if obj.Graph.Objects[i] == obj {
-			obj.Graph.Objects = append(obj.Graph.Objects[:i], obj.Graph.Objects[i+1:]...)
-			break
-		}
-	}
-	delete(obj.Parent.Children, obj.ID)
-	for i, child := range obj.Parent.ChildrenArray {
-		if obj == child {
-			obj.Parent.ChildrenArray = append(obj.Parent.ChildrenArray[:i], obj.Parent.ChildrenArray[i+1:]...)
-			break
-		}
 	}
 }
 

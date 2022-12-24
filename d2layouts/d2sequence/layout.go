@@ -5,12 +5,11 @@ import (
 	"sort"
 	"strings"
 
-	"oss.terrastruct.com/util-go/go2"
-
 	"oss.terrastruct.com/d2/d2graph"
 	"oss.terrastruct.com/d2/d2target"
 	"oss.terrastruct.com/d2/lib/geo"
 	"oss.terrastruct.com/d2/lib/label"
+	"oss.terrastruct.com/util-go/go2"
 )
 
 // Layout runs the sequence diagram layout engine on objects of shape sequence_diagram
@@ -32,21 +31,34 @@ func Layout(ctx context.Context, g *d2graph.Graph, layout func(ctx context.Conte
 	for len(queue) > 0 {
 		obj := queue[0]
 		queue = queue[1:]
+		if len(obj.ChildrenArray) == 0 {
+			continue
+		}
 		if obj.Attributes.Shape.Value != d2target.ShapeSequenceDiagram {
 			queue = append(queue, obj.ChildrenArray...)
 			continue
 		}
 
-		sd := layoutSequenceDiagram(g, obj)
+		sd, err := layoutSequenceDiagram(g, obj)
+		if err != nil {
+			return err
+		}
 		obj.Children = make(map[string]*d2graph.Object)
 		obj.ChildrenArray = nil
-		obj.Box = geo.NewBox(nil, sd.getWidth(), sd.getHeight())
+		obj.Box = geo.NewBox(nil, sd.getWidth()+GROUP_CONTAINER_PADDING*2, sd.getHeight()+GROUP_CONTAINER_PADDING*2)
+		obj.LabelPosition = go2.Pointer(string(label.InsideTopCenter))
 		sequenceDiagrams[obj.AbsID()] = sd
 
 		for _, edge := range sd.messages {
 			edgesToRemove[edge] = struct{}{}
 		}
 		for _, obj := range sd.actors {
+			objectsToRemove[obj] = struct{}{}
+		}
+		for _, obj := range sd.notes {
+			objectsToRemove[obj] = struct{}{}
+		}
+		for _, obj := range sd.groups {
 			objectsToRemove[obj] = struct{}{}
 		}
 		for _, obj := range sd.spans {
@@ -59,7 +71,7 @@ func Layout(ctx context.Context, g *d2graph.Graph, layout func(ctx context.Conte
 	layoutObjects, objectOrder := getLayoutObjects(g, objectsToRemove)
 	g.Objects = layoutObjects
 
-	if isRootSequenceDiagram(g) {
+	if g.Root.IsSequenceDiagram() {
 		// the sequence diagram is the only layout engine if the whole diagram is
 		// shape: sequence_diagram
 		g.Root.TopLeft = geo.NewPoint(0, 0)
@@ -71,23 +83,19 @@ func Layout(ctx context.Context, g *d2graph.Graph, layout func(ctx context.Conte
 	return nil
 }
 
-func isRootSequenceDiagram(g *d2graph.Graph) bool {
-	return g.Root.Attributes.Shape.Value == d2target.ShapeSequenceDiagram
-}
-
 // layoutSequenceDiagram finds the edges inside the sequence diagram and performs the layout on the object descendants
-func layoutSequenceDiagram(g *d2graph.Graph, obj *d2graph.Object) *sequenceDiagram {
+func layoutSequenceDiagram(g *d2graph.Graph, obj *d2graph.Object) (*sequenceDiagram, error) {
 	var edges []*d2graph.Edge
 	for _, edge := range g.Edges {
 		// both Src and Dst must be inside the sequence diagram
-		if strings.HasPrefix(edge.Src.AbsID(), obj.AbsID()) && strings.HasPrefix(edge.Dst.AbsID(), obj.AbsID()) {
+		if obj == g.Root || (strings.HasPrefix(edge.Src.AbsID(), obj.AbsID()+".") && strings.HasPrefix(edge.Dst.AbsID(), obj.AbsID()+".")) {
 			edges = append(edges, edge)
 		}
 	}
 
 	sd := newSequenceDiagram(obj.ChildrenArray, edges)
-	sd.layout()
-	return sd
+	err := sd.layout()
+	return sd, err
 }
 
 func getLayoutEdges(g *d2graph.Graph, toRemove map[*d2graph.Edge]struct{}) ([]*d2graph.Edge, map[string]int) {
@@ -123,7 +131,7 @@ func getLayoutObjects(g *d2graph.Graph, toRemove map[*d2graph.Object]struct{}) (
 // - sorts edges and objects to their original graph order
 func cleanup(g *d2graph.Graph, sequenceDiagrams map[string]*sequenceDiagram, objectsOrder, edgesOrder map[string]int) {
 	var objects []*d2graph.Object
-	if isRootSequenceDiagram(g) {
+	if g.Root.IsSequenceDiagram() {
 		objects = []*d2graph.Object{g.Root}
 	} else {
 		objects = g.Objects
@@ -135,18 +143,32 @@ func cleanup(g *d2graph.Graph, sequenceDiagrams map[string]*sequenceDiagram, obj
 		obj.LabelPosition = go2.Pointer(string(label.InsideTopCenter))
 		sd := sequenceDiagrams[obj.AbsID()]
 
-		// shift the sequence diagrams as they are always placed at (0, 0)
-		sd.shift(obj.TopLeft)
+		// shift the sequence diagrams as they are always placed at (0, 0) with some padding
+		sd.shift(
+			geo.NewPoint(
+				obj.TopLeft.X+GROUP_CONTAINER_PADDING,
+				obj.TopLeft.Y+GROUP_CONTAINER_PADDING,
+			),
+		)
 
 		obj.Children = make(map[string]*d2graph.Object)
+		obj.ChildrenArray = make([]*d2graph.Object, 0)
 		for _, child := range sd.actors {
 			obj.Children[child.ID] = child
+			obj.ChildrenArray = append(obj.ChildrenArray, child)
 		}
-		obj.ChildrenArray = sd.actors
+		for _, child := range sd.groups {
+			if child.Parent.AbsID() == obj.AbsID() {
+				obj.Children[child.ID] = child
+				obj.ChildrenArray = append(obj.ChildrenArray, child)
+			}
+		}
 
 		g.Edges = append(g.Edges, sequenceDiagrams[obj.AbsID()].messages...)
 		g.Edges = append(g.Edges, sequenceDiagrams[obj.AbsID()].lifelines...)
 		g.Objects = append(g.Objects, sequenceDiagrams[obj.AbsID()].actors...)
+		g.Objects = append(g.Objects, sequenceDiagrams[obj.AbsID()].notes...)
+		g.Objects = append(g.Objects, sequenceDiagrams[obj.AbsID()].groups...)
 		g.Objects = append(g.Objects, sequenceDiagrams[obj.AbsID()].spans...)
 	}
 

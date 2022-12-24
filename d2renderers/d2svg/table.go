@@ -3,12 +3,13 @@ package d2svg
 import (
 	"fmt"
 	"io"
-	"math"
 	"strings"
 
 	"oss.terrastruct.com/d2/d2target"
 	"oss.terrastruct.com/d2/lib/geo"
 	"oss.terrastruct.com/d2/lib/label"
+	"oss.terrastruct.com/d2/lib/svg"
+	"oss.terrastruct.com/util-go/go2"
 )
 
 func tableHeader(box *geo.Box, text string, textWidth, textHeight, fontSize float64) string {
@@ -32,7 +33,7 @@ func tableHeader(box *geo.Box, text string, textWidth, textHeight, fontSize floa
 				4+fontSize,
 				"white",
 			),
-			escapeText(text),
+			svg.EscapeText(text),
 		)
 	}
 	return str
@@ -43,13 +44,13 @@ func tableRow(box *geo.Box, nameText, typeText, constraintText string, fontSize,
 	// e.g. | diagram   int   FK |
 	nameTL := label.InsideMiddleLeft.GetPointOnBox(
 		box,
-		prefixPadding,
+		d2target.NamePadding,
 		box.Width,
 		fontSize,
 	)
 	constraintTR := label.InsideMiddleRight.GetPointOnBox(
 		box,
-		typePadding,
+		d2target.TypePadding,
 		0,
 		fontSize,
 	)
@@ -64,15 +65,15 @@ func tableRow(box *geo.Box, nameText, typeText, constraintText string, fontSize,
 			nameTL.X,
 			nameTL.Y+fontSize*3/4,
 			fmt.Sprintf("text-anchor:%s;font-size:%vpx;fill:%s", "start", fontSize, primaryColor),
-			escapeText(nameText),
+			svg.EscapeText(nameText),
 		),
 
 		// TODO light font
 		fmt.Sprintf(`<text class="text" x="%f" y="%f" style="%s">%s</text>`,
-			nameTL.X+longestNameWidth,
+			nameTL.X+longestNameWidth+2*d2target.NamePadding,
 			nameTL.Y+fontSize*3/4,
 			fmt.Sprintf("text-anchor:%s;font-size:%vpx;fill:%s", "start", fontSize, neutralColor),
-			escapeText(typeText),
+			svg.EscapeText(typeText),
 		),
 
 		fmt.Sprintf(`<text class="text" x="%f" y="%f" style="%s">%s</text>`,
@@ -82,19 +83,6 @@ func tableRow(box *geo.Box, nameText, typeText, constraintText string, fontSize,
 			constraintText,
 		),
 	}, "\n")
-}
-
-func constraintAbbr(constraint string) string {
-	switch constraint {
-	case "primary_key":
-		return "PK"
-	case "foreign_key":
-		return "FK"
-	case "unique":
-		return "UNQ"
-	default:
-		return ""
-	}
 }
 
 func drawTable(writer io.Writer, targetShape d2target.Shape) {
@@ -113,18 +101,16 @@ func drawTable(writer io.Writer, targetShape d2target.Shape) {
 		tableHeader(headerBox, targetShape.Label, float64(targetShape.LabelWidth), float64(targetShape.LabelHeight), float64(targetShape.FontSize)),
 	)
 
-	fontSize := float64(targetShape.FontSize)
-	var longestNameWidth float64
-	for _, f := range targetShape.SQLTable.Columns {
-		// TODO measure text
-		longestNameWidth = math.Max(longestNameWidth, float64(len(f.Name))*fontSize*5/9)
+	var longestNameWidth int
+	for _, f := range targetShape.Columns {
+		longestNameWidth = go2.Max(longestNameWidth, f.Name.LabelWidth)
 	}
 
 	rowBox := geo.NewBox(box.TopLeft.Copy(), box.Width, rowHeight)
 	rowBox.TopLeft.Y += headerBox.Height
-	for _, f := range targetShape.SQLTable.Columns {
+	for _, f := range targetShape.Columns {
 		fmt.Fprint(writer,
-			tableRow(rowBox, f.Name, f.Type, constraintAbbr(f.Constraint), fontSize, longestNameWidth),
+			tableRow(rowBox, f.Name.Label, f.Type.Label, f.ConstraintAbbr(), float64(targetShape.FontSize), float64(longestNameWidth)),
 		)
 		rowBox.TopLeft.Y += rowHeight
 		fmt.Fprintf(writer, `<line x1="%f" y1="%f" x2="%f" y2="%f" style="stroke-width:2;stroke:#0a0f25" />`,
@@ -132,5 +118,4 @@ func drawTable(writer io.Writer, targetShape d2target.Shape) {
 			rowBox.TopLeft.X+rowBox.Width, rowBox.TopLeft.Y,
 		)
 	}
-
 }

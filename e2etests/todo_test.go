@@ -66,6 +66,29 @@ ninety nine: {
 	}
 }
 `,
+		}, {
+			// as nesting gets deeper, the groups advance towards `c` and may overlap its lifeline
+			// needs to consider the group size when computing the distance from `a` to `c`
+			// a similar effect can be seen for spans
+			name: "sequence_diagram_actor_padding_nested_groups",
+			script: `shape: sequence_diagram
+b;a;c
+b -> c
+this is a message group: {
+    a -> b
+    and this is a nested message group: {
+        a -> b
+        what about more nesting: {
+            a -> b
+            yo: {
+                a -> b
+                yo: {
+                    a -> b
+                }
+            }
+        }
+    }
+}`,
 		},
 	}
 

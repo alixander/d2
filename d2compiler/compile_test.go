@@ -6,13 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"oss.terrastruct.com/util-go/assert"
-	"oss.terrastruct.com/util-go/diff"
+	tassert "github.com/stretchr/testify/assert"
 
 	"oss.terrastruct.com/d2/d2compiler"
 	"oss.terrastruct.com/d2/d2format"
 	"oss.terrastruct.com/d2/d2graph"
 	"oss.terrastruct.com/d2/d2target"
+	"oss.terrastruct.com/util-go/assert"
+	"oss.terrastruct.com/util-go/diff"
 )
 
 func TestCompile(t *testing.T) {
@@ -207,6 +208,20 @@ x: {
 					t.Fatalf("expected 2 objects at the root: %#v", len(g.Root.ChildrenArray))
 				}
 
+			},
+		},
+		{
+			name: "underscore_unresolved_obj",
+
+			text: `
+x: {
+	_.y
+}
+`,
+			assertions: func(t *testing.T, g *d2graph.Graph) {
+				tassert.Equal(t, "y", g.Objects[1].ID)
+				tassert.Equal(t, g.Root.AbsID(), g.Objects[1].References[0].ScopeObj.AbsID())
+				tassert.Equal(t, g.Objects[0].AbsID(), g.Objects[1].References[0].UnresolvedScopeObj.AbsID())
 			},
 		},
 		{
@@ -1332,8 +1347,21 @@ y -> x.style
 				if len(g.Objects) != 1 {
 					t.Fatal(g.Objects)
 				}
+				assert.String(t, `"b\nb"`, g.Objects[0].ID)
 				assert.String(t, `b
 b`, g.Objects[0].Attributes.Label.Value)
+			},
+		},
+		{
+			name: "unescaped_id_cr",
+
+			text: `b\rb`,
+			assertions: func(t *testing.T, g *d2graph.Graph) {
+				if len(g.Objects) != 1 {
+					t.Fatal(g.Objects)
+				}
+				assert.String(t, "b\rb", g.Objects[0].ID)
+				assert.String(t, "b\rb", g.Objects[0].Attributes.Label.Value)
 			},
 		},
 		{
@@ -1437,8 +1465,8 @@ b`, g.Objects[0].Attributes.Label.Value)
 				if len(g.Objects) != 1 {
 					t.Fatal(g.Objects)
 				}
-				assert.String(t, `GetType()`, g.Objects[0].SQLTable.Columns[0].Name)
-				assert.String(t, `Is()`, g.Objects[0].SQLTable.Columns[1].Name)
+				assert.String(t, `GetType()`, g.Objects[0].SQLTable.Columns[0].Name.Label)
+				assert.String(t, `Is()`, g.Objects[0].SQLTable.Columns[1].Name.Label)
 			},
 		},
 		{
@@ -1462,8 +1490,8 @@ b`, g.Objects[0].Attributes.Label.Value)
 				if len(g.Objects[0].ChildrenArray) != 1 {
 					t.Fatal(g.Objects)
 				}
-				assert.String(t, `GetType()`, g.Objects[1].SQLTable.Columns[0].Name)
-				assert.String(t, `Is()`, g.Objects[1].SQLTable.Columns[1].Name)
+				assert.String(t, `GetType()`, g.Objects[1].SQLTable.Columns[0].Name.Label)
+				assert.String(t, `Is()`, g.Objects[1].SQLTable.Columns[1].Name.Label)
 			},
 		},
 		{
@@ -1521,6 +1549,50 @@ dst.id <-> src.dst_id
 			},
 		},
 		{
+			name: "leaky_sequence",
+
+			text: `x: {
+  shape: sequence_diagram
+  a
+}
+b -> x.a
+`,
+			expErr: `d2/testdata/d2compiler/TestCompile/leaky_sequence.d2:5:1: connections within sequence diagrams can connect only to other objects within the same sequence diagram
+`,
+		},
+		{
+			name: "sequence_scoping",
+
+			text: `x: {
+  shape: sequence_diagram
+	a;b
+  group: {
+    a -> b
+    a.t1 -> b.t1
+    b.t1.t2 -> b.t1
+  }
+}
+`,
+			assertions: func(t *testing.T, g *d2graph.Graph) {
+				tassert.Equal(t, 7, len(g.Objects))
+				tassert.Equal(t, 3, len(g.Objects[0].ChildrenArray))
+			},
+		},
+		{
+			name: "sequence_grouped_note",
+
+			text: `shape: sequence_diagram
+a;d
+choo: {
+  d."this note"
+}
+`,
+			assertions: func(t *testing.T, g *d2graph.Graph) {
+				tassert.Equal(t, 4, len(g.Objects))
+				tassert.Equal(t, 3, len(g.Root.ChildrenArray))
+			},
+		},
+		{
 			name: "root_direction",
 
 			text: `direction: right`,
@@ -1547,12 +1619,63 @@ dst.id <-> src.dst_id
 			},
 		},
 		{
+			name: "constraint_label",
+
+			text: `foo {
+  label: bar
+  constraint: BIZ
+}`,
+			assertions: func(t *testing.T, g *d2graph.Graph) {
+				assert.String(t, "bar", g.Objects[0].Attributes.Label.Value)
+			},
+		},
+		{
 			name: "invalid_direction",
 
 			text: `x: {
   direction: diagonal
 }`,
 			expErr: `d2/testdata/d2compiler/TestCompile/invalid_direction.d2:2:14: direction must be one of up, down, right, left, got "diagonal"
+`,
+		},
+		{
+			name: "self-referencing",
+
+			text: `x -> x
+`,
+			assertions: func(t *testing.T, g *d2graph.Graph) {
+				_, err := diff.Strings(g.Edges[0].Dst.ID, g.Edges[0].Src.ID)
+				if err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name: "sql-regression",
+
+			text: `a: {
+  style: {
+    fill: lemonchiffon
+  }
+  b: {
+    shape: sql_table
+    c
+  }
+  d
+}
+`,
+			assertions: func(t *testing.T, g *d2graph.Graph) {
+				tassert.Equal(t, 3, len(g.Objects))
+			},
+		},
+		{
+			name: "sql-panic",
+			text: `test {
+    shape: sql_table
+    test_id: varchar(64) {constraint: [primary_key, foreign_key]}
+}
+`,
+			expErr: `d2/testdata/d2compiler/TestCompile/sql-panic.d2:3:27: constraint value must be a string
 `,
 		},
 	}

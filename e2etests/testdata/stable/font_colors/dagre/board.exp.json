@@ -1,5 +1,6 @@
 {
   "name": "",
+  "fontFamily": "SourceSansPro",
   "shapes": [
     {
       "id": "alpha",
@@ -23,6 +24,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -62,6 +64,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,

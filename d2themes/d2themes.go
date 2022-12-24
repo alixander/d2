@@ -14,6 +14,7 @@ type Neutral struct {
 	N3 string `json:"n3"`
 	N4 string `json:"n4"`
 	N5 string `json:"n5"`
+	N6 string `json:"n6"`
 	N7 string `json:"n7"`
 }
 
@@ -43,7 +44,8 @@ var CoolNeutral = Neutral{
 	N2: "#676C7E",
 	N3: "#9499AB",
 	N4: "#CFD2DD",
-	N5: "#F0F3F9",
+	N5: "#DEE1EB",
+	N6: "#EEF1F8",
 	N7: "#FFFFFF",
 }
 
@@ -53,5 +55,6 @@ var WarmNeutral = Neutral{
 	N3: "#787777",
 	N4: "#CCCACA",
 	N5: "#DFDCDC",
+	N6: "#ECEBEB",
 	N7: "#FFFFFF",
 }

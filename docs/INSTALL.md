@@ -6,10 +6,17 @@ You may install `d2` through any of the following methods.
 - <a href="#installsh" id="toc-installsh">install.sh</a>
   - <a href="#security" id="toc-security">Security</a>
 - <a href="#macos-homebrew" id="toc-macos-homebrew">macOS (Homebrew)</a>
+- <a href="#linux" id="toc-linux">Linux</a>
+  - <a href="#void-linux" id="toc-void-linux">Void Linux</a>
 - <a href="#standalone" id="toc-standalone">Standalone</a>
   - <a href="#manual" id="toc-manual">Manual</a>
   - <a href="#prefix" id="toc-prefix">PREFIX</a>
 - <a href="#from-source" id="toc-from-source">From source</a>
+  - <a href="#source-release" id="toc-source-release">Source Release</a>
+- <a href="#windows" id="toc-windows">Windows</a>
+  - <a href="#release-archives" id="toc-release-archives">Release archives</a>
+  - <a href="#wsl" id="toc-wsl">WSL</a>
+- <a href="#docker" id="toc-docker">Docker</a>
 - <a href="#coming-soon" id="toc-coming-soon">Coming soon</a>
 
 ## install.sh
@@ -47,9 +54,9 @@ We're careful shell programmers and are aware of the many footguns of the Unix s
 script was written carefully and with detail. For example, it is not vulnerable to partial
 execution and the entire script runs with `set -eu` and very meticulous quoting.
 
-It follows the XDG standards, installs `d2` properly into a Unix hierarchy path (defaulting
-to /usr/local though you can use ~/.local to avoid sudo if you'd like) and allows for easy
-uninstall.
+It follows the XDG standards, installs `d2` properly into a Unix hierarchy path
+(`/usr/local` unless `/usr/local` requires sudo in which case `~/.local` is used) and
+allows for easy uninstall. You can easily adjust the used path with `--prefix`.
 
 Some other niceties are that it'll tell you if you need to adjust `$PATH` or `$MANPATH` to
 access `d2` and its manpages. It can also install
@@ -67,12 +74,29 @@ but that is coming soon. [#315](https://github.com/terrastruct/d2/issues/315)
 If you're on macOS, you can install with `brew`.
 
 ```sh
-brew tap terrastruct/d2
 brew install d2
 ```
 
 > The install script above does this automatically if you have `brew` installed and
 > are running it on macOS.
+
+You can also install from source with:
+
+```d2
+brew install d2 --HEAD
+```
+
+## Linux
+
+The following distributions have packages for d2:
+
+### Void Linux
+
+All supported platforms:
+
+```sh
+xbps-install d2
+```
 
 ## Standalone
 
@@ -126,10 +150,6 @@ The install script places the standalone release into `$PREFIX/lib/d2/d2-<versio
 and we recommend doing the same with manually installed releases so that you
 know where the release directory is for easy uninstall.
 
-> warn: Our binary releases aren't fully static like normal Go binaries due to the C
-> dependency on v8go for executing dagre. If you're on an older system with an old
-> libc, you'll want to install from source.
-
 ## From source
 
 You can always install from source:
@@ -138,7 +158,11 @@ You can always install from source:
 go install oss.terrastruct.com/d2@latest
 ```
 
-To install a proper release from source clone the repository and then:
+You need at least Go v1.18
+
+### Source Release
+
+To install a release from source clone the repository and then:
 
 ```sh
 ./ci/release/build.sh --install
@@ -146,10 +170,62 @@ To install a proper release from source clone the repository and then:
 # ./ci/release/build.sh --uninstall
 ```
 
+Installing a real release will also install manpages and in the future other assets like
+fonts and icons. Furthermore, when installing a non versioned commit, installing a release
+will ensure that `d2 --version` works correctly by embedding the commit hash into the `d2`
+binary.
+
+Remember, you need at least Go v1.18
+
+## Windows
+
+We have prebuilt releases of d2 available for Windows via `.msi` installers. The installer
+will add the `d2` binary to your `$PATH` so that you can execute `d2` in `cmd.exe` or
+`pwsh.exe`.
+
+### Release archives
+
+We also have release archives for Windows structured in the same way as our Unix releases
+for use with MSYS2.
+
+<img width="1680" alt="Screenshot 2022-12-06 at 2 55 27 AM" src="https://user-images.githubusercontent.com/10180857/205892927-6f3e116c-1c4a-440a-9972-82c306aa9779.png">
+
+See [MSYS2](https://www.msys2.org/) or [Git Bash](https://gitforwindows.org/#bash) (Git
+Bash is based on MSYS2).
+
+MSYS2 provides a unix style shell environment that is native to Windows (unlike
+[Cygwin](https://www.cygwin.com/)). MSYS2 allows `install.sh` to work, enables automatic
+installation of our standalone releases via `make install` and makes the manpage
+accessible via `man d2`.
+
+The MSYS2 terminal also enables `d2` to display colors like in the above screenshot.
+
+In addition, all of our development and CI scripts work under MSYS2 whereas they do not
+under plain Windows.
+
+### WSL
+
+`d2` works perfectly under [WSL](https://learn.microsoft.com/en-us/windows/wsl/install)
+aka Windows Subsystem for Linux if that's what you prefer. Installation is just like any
+other Linux system.
+
+## Docker
+
+https://hub.docker.com/repository/docker/terrastruct/d2
+
+We publish `amd64` and `arm64` images based on `debian:latest` for each release.
+
+Example usage:
+
+```sh
+echo 'x -> y' >helloworld.d2
+docker run --rm -it -u "$(id -u):$(id -g)" -v "$PWD:/root/src" \
+  -p 127.0.0.1:8080:8080 terrastruct/d2:v0.1.2 --watch helloworld.d2
+# Visit http://127.0.0.1:8080
+```
+
 ## Coming soon
 
-- Docker image
-- Windows install
 - rpm and deb packages
     - with repositories and standalone
 - homebrew core

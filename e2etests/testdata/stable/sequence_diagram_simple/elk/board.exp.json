@@ -1,20 +1,21 @@
 {
   "name": "",
+  "fontFamily": "SourceSansPro",
   "shapes": [
     {
       "id": "alice",
       "type": "person",
       "pos": {
-        "x": 0,
-        "y": 130
+        "x": 24,
+        "y": 101
       },
-      "width": 163,
+      "width": 158,
       "height": 158,
       "opacity": 1,
       "strokeDash": 0,
       "strokeWidth": 2,
       "borderRadius": 0,
-      "fill": "#E3E9FD",
+      "fill": "#EDF0FD",
       "stroke": "red",
       "shadow": false,
       "3d": false,
@@ -23,6 +24,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -32,11 +34,11 @@
       "language": "",
       "color": "#0A0F25",
       "italic": false,
-      "bold": true,
+      "bold": false,
       "underline": false,
-      "labelWidth": 63,
+      "labelWidth": 58,
       "labelHeight": 58,
-      "labelPosition": "INSIDE_MIDDLE_CENTER",
+      "labelPosition": "OUTSIDE_BOTTOM_CENTER",
       "zIndex": 0,
       "level": 1
     },
@@ -44,16 +46,16 @@
       "id": "bob",
       "type": "person",
       "pos": {
-        "x": 480,
-        "y": 162
+        "x": 297,
+        "y": 165
       },
-      "width": 132,
+      "width": 150,
       "height": 126,
       "opacity": 1,
       "strokeDash": 0,
       "strokeWidth": 5,
       "borderRadius": 0,
-      "fill": "#E3E9FD",
+      "fill": "#EDF0FD",
       "stroke": "#0D32B2",
       "shadow": false,
       "3d": false,
@@ -62,6 +64,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -71,11 +74,11 @@
       "language": "",
       "color": "#0A0F25",
       "italic": false,
-      "bold": true,
+      "bold": false,
       "underline": false,
       "labelWidth": 32,
       "labelHeight": 26,
-      "labelPosition": "INSIDE_MIDDLE_CENTER",
+      "labelPosition": "OUTSIDE_BOTTOM_CENTER",
       "zIndex": 0,
       "level": 1
     },
@@ -83,10 +86,10 @@
       "id": "db",
       "type": "cylinder",
       "pos": {
-        "x": 929,
-        "y": 162
+        "x": 614,
+        "y": 186
       },
-      "width": 124,
+      "width": 150,
       "height": 126,
       "opacity": 1,
       "strokeDash": 0,
@@ -101,6 +104,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -110,9 +114,9 @@
       "language": "",
       "color": "#0A0F25",
       "italic": false,
-      "bold": true,
+      "bold": false,
       "underline": false,
-      "labelWidth": 24,
+      "labelWidth": 23,
       "labelHeight": 26,
       "labelPosition": "INSIDE_MIDDLE_CENTER",
       "zIndex": 0,
@@ -122,16 +126,16 @@
       "id": "queue",
       "type": "queue",
       "pos": {
-        "x": 1370,
-        "y": 162
+        "x": 931,
+        "y": 186
       },
-      "width": 149,
+      "width": 150,
       "height": 126,
       "opacity": 1,
       "strokeDash": 0,
       "strokeWidth": 2,
       "borderRadius": 0,
-      "fill": "#F0F3F9",
+      "fill": "#EDF0FD",
       "stroke": "#0D32B2",
       "shadow": false,
       "3d": false,
@@ -140,6 +144,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -149,9 +154,9 @@
       "language": "",
       "color": "#0A0F25",
       "italic": false,
-      "bold": true,
+      "bold": false,
       "underline": false,
-      "labelWidth": 49,
+      "labelWidth": 48,
       "labelHeight": 26,
       "labelPosition": "INSIDE_MIDDLE_CENTER",
       "zIndex": 0,
@@ -161,16 +166,16 @@
       "id": "service",
       "type": "",
       "pos": {
-        "x": 1836,
-        "y": 50
+        "x": 1225,
+        "y": 74
       },
-      "width": 202,
+      "width": 197,
       "height": 238,
       "opacity": 1,
       "strokeDash": 0,
       "strokeWidth": 2,
       "borderRadius": 0,
-      "fill": "#F7F8FE",
+      "fill": "#EDF0FD",
       "stroke": "#0D32B2",
       "shadow": false,
       "3d": false,
@@ -179,6 +184,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -188,9 +194,9 @@
       "language": "",
       "color": "#0A0F25",
       "italic": false,
-      "bold": true,
+      "bold": false,
       "underline": false,
-      "labelWidth": 102,
+      "labelWidth": 97,
       "labelHeight": 138,
       "labelPosition": "INSIDE_MIDDLE_CENTER",
       "zIndex": 0,
@@ -220,22 +226,22 @@
       "underline": false,
       "labelWidth": 155,
       "labelHeight": 21,
-      "labelPosition": "OUTSIDE_TOP_CENTER",
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
       "labelPercentage": 0,
       "route": [
         {
-          "x": 86.5,
-          "y": 438
+          "x": 103,
+          "y": 442
         },
         {
-          "x": 541,
-          "y": 438
+          "x": 372,
+          "y": 442
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 2
+      "zIndex": 4
     },
     {
       "id": "(bob -> service)[0]",
@@ -259,22 +265,22 @@
       "underline": false,
       "labelWidth": 801,
       "labelHeight": 21,
-      "labelPosition": "OUTSIDE_TOP_CENTER",
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
       "labelPercentage": 0,
       "route": [
         {
-          "x": 551,
-          "y": 588
+          "x": 372,
+          "y": 572
         },
         {
-          "x": 1932,
-          "y": 588
+          "x": 1323.5,
+          "y": 572
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 2
+      "zIndex": 4
     },
     {
       "id": "(service -> db)[0]",
@@ -298,22 +304,22 @@
       "underline": false,
       "labelWidth": 131,
       "labelHeight": 21,
-      "labelPosition": "OUTSIDE_BOTTOM_CENTER",
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
       "labelPercentage": 0,
       "route": [
         {
-          "x": 1932,
-          "y": 738
+          "x": 1323.5,
+          "y": 702
         },
         {
-          "x": 996,
-          "y": 738
+          "x": 689,
+          "y": 702
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 2
+      "zIndex": 4
     },
     {
       "id": "(db -> service)[0]",
@@ -341,18 +347,18 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 996,
-          "y": 888
+          "x": 689,
+          "y": 832
         },
         {
-          "x": 1932,
-          "y": 888
+          "x": 1323.5,
+          "y": 832
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 2
+      "zIndex": 4
     },
     {
       "id": "(service -> bob)[0]",
@@ -380,18 +386,18 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 1932,
-          "y": 1038
+          "x": 1323.5,
+          "y": 962
         },
         {
-          "x": 551,
-          "y": 1038
+          "x": 372,
+          "y": 962
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 2
+      "zIndex": 4
     },
     {
       "id": "(bob -> alice)[0]",
@@ -415,22 +421,22 @@
       "underline": false,
       "labelWidth": 164,
       "labelHeight": 21,
-      "labelPosition": "OUTSIDE_BOTTOM_CENTER",
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
       "labelPercentage": 0,
       "route": [
         {
-          "x": 541,
-          "y": 1188
+          "x": 372,
+          "y": 1092
         },
         {
-          "x": 86.5,
-          "y": 1188
+          "x": 103,
+          "y": 1092
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 2
+      "zIndex": 4
     },
     {
       "id": "(alice -> bob)[1]",
@@ -454,22 +460,22 @@
       "underline": false,
       "labelWidth": 210,
       "labelHeight": 21,
-      "labelPosition": "OUTSIDE_TOP_CENTER",
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
       "labelPercentage": 0,
       "route": [
         {
-          "x": 86.5,
-          "y": 1338
+          "x": 103,
+          "y": 1222
         },
         {
-          "x": 541,
-          "y": 1338
+          "x": 372,
+          "y": 1222
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 2
+      "zIndex": 4
     },
     {
       "id": "(bob -> queue)[0]",
@@ -493,22 +499,22 @@
       "underline": false,
       "labelWidth": 65,
       "labelHeight": 21,
-      "labelPosition": "OUTSIDE_TOP_CENTER",
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
       "labelPercentage": 0,
       "route": [
         {
-          "x": 551,
-          "y": 1488
+          "x": 372,
+          "y": 1352
         },
         {
-          "x": 1439.5,
-          "y": 1488
+          "x": 1006,
+          "y": 1352
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 2
+      "zIndex": 4
     },
     {
       "id": "(queue -> bob)[0]",
@@ -532,22 +538,22 @@
       "underline": false,
       "labelWidth": 44,
       "labelHeight": 21,
-      "labelPosition": "OUTSIDE_BOTTOM_CENTER",
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
       "labelPercentage": 0,
       "route": [
         {
-          "x": 1439.5,
-          "y": 1638
+          "x": 1006,
+          "y": 1482
         },
         {
-          "x": 551,
-          "y": 1638
+          "x": 372,
+          "y": 1482
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 2
+      "zIndex": 4
     },
     {
       "id": "(bob -> alice)[1]",
@@ -571,22 +577,22 @@
       "underline": false,
       "labelWidth": 219,
       "labelHeight": 21,
-      "labelPosition": "OUTSIDE_BOTTOM_CENTER",
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
       "labelPercentage": 0,
       "route": [
         {
-          "x": 541,
-          "y": 1788
+          "x": 372,
+          "y": 1612
         },
         {
-          "x": 86.5,
-          "y": 1788
+          "x": 103,
+          "y": 1612
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 2
+      "zIndex": 4
     },
     {
       "id": "(alice -- )[0]",
@@ -597,9 +603,9 @@
       "dstArrow": "none",
       "dstLabel": "",
       "opacity": 1,
-      "strokeDash": 10,
+      "strokeDash": 6,
       "strokeWidth": 2,
-      "stroke": "red",
+      "stroke": "#0D32B2",
       "label": "",
       "fontSize": 16,
       "fontFamily": "DEFAULT",
@@ -614,18 +620,18 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 81.5,
-          "y": 288
+          "x": 103,
+          "y": 317
         },
         {
-          "x": 81.5,
-          "y": 1938
+          "x": 103,
+          "y": 1742
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 0
+      "zIndex": 1
     },
     {
       "id": "(bob -- )[0]",
@@ -636,8 +642,8 @@
       "dstArrow": "none",
       "dstLabel": "",
       "opacity": 1,
-      "strokeDash": 10,
-      "strokeWidth": 5,
+      "strokeDash": 6,
+      "strokeWidth": 2,
       "stroke": "#0D32B2",
       "label": "",
       "fontSize": 16,
@@ -653,18 +659,18 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 546,
-          "y": 288
+          "x": 372,
+          "y": 317
         },
         {
-          "x": 546,
-          "y": 1938
+          "x": 372,
+          "y": 1742
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 0
+      "zIndex": 1
     },
     {
       "id": "(db -- )[0]",
@@ -675,7 +681,7 @@
       "dstArrow": "none",
       "dstLabel": "",
       "opacity": 1,
-      "strokeDash": 10,
+      "strokeDash": 6,
       "strokeWidth": 2,
       "stroke": "#0D32B2",
       "label": "",
@@ -692,18 +698,18 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 991,
-          "y": 288
+          "x": 689,
+          "y": 312
         },
         {
-          "x": 991,
-          "y": 1938
+          "x": 689,
+          "y": 1742
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 0
+      "zIndex": 1
     },
     {
       "id": "(queue -- )[0]",
@@ -714,7 +720,7 @@
       "dstArrow": "none",
       "dstLabel": "",
       "opacity": 1,
-      "strokeDash": 10,
+      "strokeDash": 6,
       "strokeWidth": 2,
       "stroke": "#0D32B2",
       "label": "",
@@ -731,18 +737,18 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 1444.5,
-          "y": 288
+          "x": 1006,
+          "y": 312
         },
         {
-          "x": 1444.5,
-          "y": 1938
+          "x": 1006,
+          "y": 1742
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 0
+      "zIndex": 1
     },
     {
       "id": "(service -- )[0]",
@@ -753,7 +759,7 @@
       "dstArrow": "none",
       "dstLabel": "",
       "opacity": 1,
-      "strokeDash": 10,
+      "strokeDash": 6,
       "strokeWidth": 2,
       "stroke": "#0D32B2",
       "label": "",
@@ -770,18 +776,18 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 1937,
-          "y": 288
+          "x": 1323.5,
+          "y": 312
         },
         {
-          "x": 1937,
-          "y": 1938
+          "x": 1323.5,
+          "y": 1742
         }
       ],
       "animated": false,
       "tooltip": "",
       "icon": null,
-      "zIndex": 0
+      "zIndex": 1
     }
   ]
 }

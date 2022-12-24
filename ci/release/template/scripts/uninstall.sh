@@ -4,17 +4,15 @@ cd -- "$(dirname "$0")/.."
 . ./scripts/lib.sh
 
 main() {
-  if [ -z "${PREFIX-}" ]; then
-    echoerr "\$PREFIX must be set to a unix prefix directory from which to uninstall d2 like /usr/local"
-    return 1
+  ensure_prefix_sh_c
+
+  ensure_os
+  if [ "$OS" = windows ]; then
+    "$sh_c" rm -f "$PREFIX/bin/d2.exe"
+  else
+    "$sh_c" rm -f "$PREFIX/bin/d2"
   fi
 
-  sh_c="sh_c"
-  if ! is_writable_dir "$PREFIX/bin"; then
-    sh_c="sudo_sh_c"
-  fi
-
-  "$sh_c" rm -f "$PREFIX/bin/d2"
   "$sh_c" rm -f "$PREFIX/share/man/man1/d2.1"
 }
 

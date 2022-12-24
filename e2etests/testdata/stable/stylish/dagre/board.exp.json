@@ -1,5 +1,6 @@
 {
   "name": "",
+  "fontFamily": "SourceSansPro",
   "shapes": [
     {
       "id": "x",
@@ -23,6 +24,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -62,6 +64,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -93,7 +96,8 @@
       "strokeDash": 5,
       "strokeWidth": 2,
       "stroke": "green",
-      "label": "",
+      "fill": "lavender",
+      "label": "in style",
       "fontSize": 16,
       "fontFamily": "DEFAULT",
       "language": "",
@@ -101,9 +105,9 @@
       "italic": true,
       "bold": false,
       "underline": false,
-      "labelWidth": 0,
-      "labelHeight": 0,
-      "labelPosition": "",
+      "labelWidth": 47,
+      "labelHeight": 21,
+      "labelPosition": "INSIDE_MIDDLE_CENTER",
       "labelPercentage": 0,
       "route": [
         {

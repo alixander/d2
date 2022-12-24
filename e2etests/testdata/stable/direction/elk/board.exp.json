@@ -1,5 +1,6 @@
 {
   "name": "",
+  "fontFamily": "SourceSansPro",
   "shapes": [
     {
       "id": "b",
@@ -23,6 +24,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -32,7 +34,7 @@
       "language": "",
       "color": "#0A0F25",
       "italic": false,
-      "bold": true,
+      "bold": false,
       "underline": false,
       "labelWidth": 18,
       "labelHeight": 41,
@@ -62,6 +64,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -71,7 +74,7 @@
       "language": "",
       "color": "#0A0F25",
       "italic": false,
-      "bold": true,
+      "bold": false,
       "underline": false,
       "labelWidth": 16,
       "labelHeight": 36,
@@ -83,7 +86,7 @@
       "id": "a",
       "type": "",
       "pos": {
-        "x": 163,
+        "x": 162,
         "y": 12
       },
       "width": 113,
@@ -101,6 +104,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -122,7 +126,7 @@
       "id": "c",
       "type": "",
       "pos": {
-        "x": 163,
+        "x": 162,
         "y": 1932
       },
       "width": 113,
@@ -140,6 +144,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -179,6 +184,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -200,7 +206,7 @@
       "id": "e",
       "type": "",
       "pos": {
-        "x": 163,
+        "x": 162,
         "y": 2384
       },
       "width": 113,
@@ -218,6 +224,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -257,6 +264,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -278,7 +286,7 @@
       "id": "b.3",
       "type": "",
       "pos": {
-        "x": 163,
+        "x": 162,
         "y": 1339
       },
       "width": 113,
@@ -296,6 +304,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -335,6 +344,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -356,7 +366,7 @@
       "id": "b.5",
       "type": "",
       "pos": {
-        "x": 163,
+        "x": 162,
         "y": 1631
       },
       "width": 113,
@@ -374,6 +384,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -395,7 +406,7 @@
       "id": "b.2.a",
       "type": "",
       "pos": {
-        "x": 163,
+        "x": 162,
         "y": 534
       },
       "width": 113,
@@ -413,6 +424,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -434,7 +446,7 @@
       "id": "b.2.b",
       "type": "",
       "pos": {
-        "x": 163,
+        "x": 162,
         "y": 680
       },
       "width": 113,
@@ -452,6 +464,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -473,7 +486,7 @@
       "id": "b.2.c",
       "type": "",
       "pos": {
-        "x": 163,
+        "x": 162,
         "y": 826
       },
       "width": 113,
@@ -491,6 +504,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -530,6 +544,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,
@@ -551,7 +566,7 @@
       "id": "b.2.e",
       "type": "",
       "pos": {
-        "x": 163,
+        "x": 162,
         "y": 1118
       },
       "width": 113,
@@ -569,6 +584,7 @@
       "link": "",
       "icon": null,
       "iconPosition": "",
+      "blend": false,
       "fields": null,
       "methods": null,
       "columns": null,

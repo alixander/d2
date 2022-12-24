@@ -5,15 +5,21 @@ import (
 	"strconv"
 
 	"oss.terrastruct.com/d2/d2graph"
+	"oss.terrastruct.com/d2/d2renderers/d2fonts"
 	"oss.terrastruct.com/d2/d2target"
 	"oss.terrastruct.com/d2/d2themes"
 	"oss.terrastruct.com/d2/d2themes/d2themescatalog"
+	"oss.terrastruct.com/util-go/go2"
 )
 
-func Export(ctx context.Context, g *d2graph.Graph, themeID int64) (*d2target.Diagram, error) {
+func Export(ctx context.Context, g *d2graph.Graph, themeID int64, fontFamily *d2fonts.FontFamily) (*d2target.Diagram, error) {
 	theme := d2themescatalog.Find(themeID)
 
 	diagram := d2target.NewDiagram()
+	if fontFamily == nil {
+		fontFamily = go2.Pointer(d2fonts.SourceSansPro)
+	}
+	diagram.FontFamily = fontFamily
 
 	diagram.Shapes = make([]d2target.Shape, len(g.Objects))
 	for i := range g.Objects {
@@ -45,6 +51,8 @@ func applyStyles(shape *d2target.Shape, obj *d2graph.Object) {
 	}
 	if obj.Attributes.Style.Fill != nil {
 		shape.Fill = obj.Attributes.Style.Fill.Value
+	} else if obj.Attributes.Shape.Value == d2target.ShapeText {
+		shape.Fill = "transparent"
 	}
 	if obj.Attributes.Style.Stroke != nil {
 		shape.Stroke = obj.Attributes.Style.Stroke.Value
@@ -95,7 +103,18 @@ func toShape(obj *d2graph.Object, theme *d2themes.Theme) d2target.Shape {
 	shape.Height = int(obj.Height)
 
 	text := obj.Text()
+	shape.Bold = text.IsBold
+	shape.Italic = text.IsItalic
 	shape.FontSize = text.FontSize
+
+	if obj.IsSequenceDiagram() {
+		shape.StrokeWidth = 0
+	}
+
+	if obj.IsSequenceDiagramGroup() {
+		shape.StrokeWidth = 0
+		shape.Blend = true
+	}
 
 	applyStyles(shape, obj)
 	applyTheme(shape, obj, theme)
@@ -187,6 +206,10 @@ func toConnection(edge *d2graph.Edge, theme *d2themes.Theme) d2target.Connection
 
 	if edge.Attributes.Style.StrokeWidth != nil {
 		connection.StrokeWidth, _ = strconv.Atoi(edge.Attributes.Style.StrokeWidth.Value)
+	}
+
+	if edge.Attributes.Style.Fill != nil {
+		connection.Fill = edge.Attributes.Style.Fill.Value
 	}
 
 	connection.FontSize = text.FontSize

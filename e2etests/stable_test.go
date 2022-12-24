@@ -917,12 +917,13 @@ y: {
   }
 }
 
-x -> y: {
+x -> y: in style {
   style: {
     stroke: green
     opacity: 0.5
     stroke-width: 2
     stroke-dash: 5
+	fill: lavender
   }
 }
 `,
@@ -1041,6 +1042,7 @@ size S -> size M: custom 15 {
 }
 size XXXL -> custom 64: custom 48 {
 	style.font-size: 48
+	style.fill: lavender
 }
 `,
 		}, {
@@ -1216,6 +1218,373 @@ finally.sequence.scorer -> finally.sequence.itemResponse.c`,
 foo baz: Foo Baz
 
 foo baz -> hello
+`,
+		}, {
+			name: "sequence_diagram_all_shapes",
+			script: `shape: sequence_diagram
+
+a: "a label" {
+    shape: callout
+}
+b: "b\nlabels" {
+    shape: circle
+}
+c: "a class" {
+    shape: class
+    +public() bool
+    -private() int
+}
+d: "cloudyyyy" {
+    shape: cloud
+}
+e: |go
+    a := 5
+    b := a + 7
+    fmt.Printf("%d", b)
+|
+f: "cyl" {
+    shape: cylinder
+}
+g: "dia" {
+    shape: diamond
+}
+h: "docs" {
+    shape: document
+}
+i: "six corners" {
+    shape: hexagon
+}
+j: "a random icon" {
+    shape: image
+    icon: https://icons.terrastruct.com/essentials/004-picture.svg
+}
+k: "over" {
+    shape: oval
+}
+l: "pack" {
+    shape: package
+}
+m: "docs page" {
+    shape: page
+}
+n: "too\nhard\to say" {
+    shape: parallelogram
+}
+o: "single\nperson" {
+    shape: person
+}
+p: "a queue" {
+    shape: queue
+}
+q: "a square" {
+    shape: square
+}
+r: "a step at a time" {
+    shape: step
+}
+s: "data" {
+    shape: stored_data
+}
+
+t: "users" {
+    shape: sql_table
+    id: int
+    name: varchar
+}
+
+a -> b: |go
+    result := callThisFunction(obj, 5)
+|
+b <-> c: "mid" {
+    source-arrowhead: "this side" {
+        shape: diamond
+    }
+    target-arrowhead: "other side" {
+        shape: triangle
+    }
+}
+c -> d
+d -> e
+e -> f
+f -> g
+g -> h
+h -> i
+i -> j
+j -> k
+k -> l
+l -> m
+m -> n
+n -> o
+o -> p
+p -> q
+q -> r
+r -> s
+s -> t`,
+		},
+		{
+			name: "self-referencing",
+			script: `x -> x -> x -> y
+z -> y
+z -> z: hello
+`,
+		}, {
+			name: "sequence_diagram_self_edges",
+			script: `shape: sequence_diagram
+a -> a: a self edge here
+a -> b: between actors
+b -> b.1: to descendant
+b.1 -> b.1.2: to deeper descendant
+b.1.2 -> b: to parent
+b -> a.1.2: actor
+a.1 -> b.3`,
+		},
+		{
+			name: "icon-label",
+			script: `ww: {
+  label: hello
+  icon: https://icons.terrastruct.com/essentials/time.svg
+}
+`,
+		},
+		{
+			name: "sequence_diagram_note",
+			script: `shape: sequence_diagram
+a; b; c; d
+a -> b
+a.explanation
+a.another explanation
+b -> c
+b."Some one who believes imaginary things\n appear right before your i's."
+c -> b: okay
+d."The earth is like a tiny grain of sand, only much, much heavier"
+`,
+		},
+		{
+			name: "sequence_diagram_groups",
+			script: `shape: sequence_diagram
+a;b;c;d
+a -> b
+ggg: {
+	a -> b: lala
+}
+group 1: {
+  b -> c
+	c -> b: ey
+  nested guy: {
+    c -> b: okay
+  }
+  b.t1 -> c.t1
+  b.t1.t2 -> c.t1
+  c.t1 -> b.t1
+}
+group b: {
+  b -> c
+	c."what would arnold say"
+  c -> b: okay
+}
+choo: {
+  d."this note"
+}
+`,
+		},
+		{
+			name: "sequence_diagram_nested_groups",
+			script: `shape: sequence_diagram
+
+a; b; c
+
+this is a message group: {
+    a -> b
+    and this is a nested message group: {
+        a -> b
+        what about more nesting: {
+            a -> b
+						crazy town: {
+								a."a note"
+								a -> b
+							whoa: {
+									a -> b
+							}
+            }
+        }
+    }
+}
+
+alt: {
+    case 1: {
+        b -> c
+    }
+    case 2: {
+        b -> c
+    }
+    case 3: {
+        b -> c
+    }
+    case 4: {
+        b -> c
+    }
+}
+
+b.note: "a note here to remember that padding must consider notes too"
+a.note: "just\na\nlong\nnote\nhere"
+c: "just an actor"
+`,
+		},
+		{
+			name: "sequence_diagram_real",
+			script: `How this is rendered: {
+  shape: sequence_diagram
+
+	CLI; d2ast; d2compiler; d2layout; d2exporter; d2themes; d2renderer; d2sequencelayout; d2dagrelayout
+
+  CLI -> d2ast: "'How this is rendered: {...}'"
+  d2ast -> CLI: tokenized AST
+  CLI -> d2compiler: compile AST
+  d2compiler."measurements also take place"
+  d2compiler -> CLI: objects and edges
+  CLI -> d2layout.layout: run layout engines
+  d2layout.layout -> d2sequencelayout: run engine on shape: sequence_diagram, temporarily remove
+  only if root is not sequence: {
+    d2layout.layout -> d2dagrelayout: run core engine on rest
+  }
+  d2layout.layout <- d2sequencelayout: add back in sequence diagrams
+  d2layout -> CLI: diagram with correct positions and dimensions
+  CLI -> d2exporter: export diagram with chosen theme and renderer
+  d2exporter.export -> d2themes: get theme styles
+  d2exporter.export -> d2renderer: render to SVG
+  d2exporter.export -> CLI: resulting SVG
+}
+`,
+		},
+		{
+			name: "sequence_diagram_actor_distance",
+			script: `shape: sequence_diagram
+a: "an actor with a really long label that will break everything"
+c: "an\nactor\nwith\na\nreally\nlong\nlabel\nthat\nwill\nbreak\neverything"
+d: "simple"
+e: "a short one"
+b: "far away"
+f: "what if there were no labels between this actor and the previous one"
+a -> b: "short"
+a -> b: "long label for testing purposes and it must be really, really long"
+c -> d: "short"
+a -> d: "this should span many actors lifelines so we know how it will look like when redering a long label over many actors"
+d -> e: "long label for testing purposes and it must be really, really long"
+a -> f`,
+		}, {
+			name: "sequence_diagram_long_note",
+			script: `shape: sequence_diagram
+a -> b
+b.note: "a note here to remember that padding must consider notes too"
+a.note: "just\na\nlong\nnote\nhere"`,
+		},
+		{
+			name: "sequence_diagram_distance",
+			script: `shape: sequence_diagram
+alice -> bob: what does it mean to be well-adjusted
+bob -> alice: The ability to play bridge or golf as if they were games
+`,
+		},
+		{
+			name: "markdown_stroke_fill",
+			script: `
+container.md: |md
+# a header
+
+a line of text and an
+
+	{
+		indented: "block",
+		of: "json",
+	}
+
+walk into a bar.
+| {
+	style.stroke: darkorange
+}
+
+container -> no container
+
+no container: |md
+they did it in style
+|
+
+no container.style: {
+	stroke: red
+	fill: "#CEEDEE"
+}
+`,
+		},
+		{
+			name: "overlapping_image_container_labels",
+			script: `
+root: {
+	shape: image
+	icon: https://icons.terrastruct.com/essentials/004-picture.svg
+}
+
+root -> container.root
+
+container: {
+	root: {
+		shape: image
+		icon: https://icons.terrastruct.com/essentials/004-picture.svg
+	}
+
+	left: {
+		root: {
+			shape: image
+			icon: https://icons.terrastruct.com/essentials/004-picture.svg
+		}
+		inner: {
+			left: {
+				shape: image
+				icon: https://icons.terrastruct.com/essentials/004-picture.svg
+			}
+			right: {
+				shape: image
+				icon: https://icons.terrastruct.com/essentials/004-picture.svg
+			}
+		}
+		root -> inner.left: {
+			label: to inner left
+		}
+		root -> inner.right: {
+			label: to inner right
+		}
+	}
+
+	right: {
+		root: {
+			shape: image
+			icon: https://icons.terrastruct.com/essentials/004-picture.svg
+		}
+		inner: {
+			left: {
+				shape: image
+				icon: https://icons.terrastruct.com/essentials/004-picture.svg
+			}
+			right: {
+				shape: image
+				icon: https://icons.terrastruct.com/essentials/004-picture.svg
+			}
+		}
+		root -> inner.left: {
+			label: to inner left
+		}
+		root -> inner.right: {
+			label: to inner right
+		}
+	}
+
+	root -> left.root: {
+		label: to left container root
+	}
+
+	root -> right.root: {
+		label: to right container root
+	}
+}
 `,
 		},
 		{

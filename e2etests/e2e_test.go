@@ -39,6 +39,10 @@ func TestE2E(t *testing.T) {
 func testSanity(t *testing.T) {
 	tcs := []testCase{
 		{
+			name:   "empty",
+			script: ``,
+		},
+		{
 			name: "basic",
 			script: `a -> b
 `,
@@ -97,7 +101,6 @@ func run(t *testing.T, tc testCase) {
 	layoutsTested := []string{"dagre", "elk"}
 
 	for _, layoutName := range layoutsTested {
-
 		var layout func(context.Context, *d2graph.Graph) error
 		if layoutName == "dagre" {
 			layout = d2dagrelayout.Layout
@@ -105,7 +108,6 @@ func run(t *testing.T, tc testCase) {
 			layout = d2elklayout.Layout
 		}
 		diagram, _, err := d2lib.Compile(ctx, tc.script, &d2lib.CompileOptions{
-			UTF16:   true,
 			Ruler:   ruler,
 			ThemeID: 0,
 			Layout:  layout,
@@ -123,14 +125,21 @@ func run(t *testing.T, tc testCase) {
 		dataPath := filepath.Join("testdata", strings.TrimPrefix(t.Name(), "TestE2E/"), layoutName)
 		pathGotSVG := filepath.Join(dataPath, "sketch.got.svg")
 
-		svgBytes, err := d2svg.Render(diagram)
+		svgBytes, err := d2svg.Render(diagram, &d2svg.RenderOpts{
+			Pad: d2svg.DEFAULT_PADDING,
+		})
 		assert.Success(t, err)
 		err = os.MkdirAll(dataPath, 0755)
 		assert.Success(t, err)
 		err = ioutil.WriteFile(pathGotSVG, svgBytes, 0600)
 		assert.Success(t, err)
-		defer os.Remove(pathGotSVG)
+		// if running from e2ereport.sh, we want to keep .got.svg on a failure
+		forReport := os.Getenv("E2E_REPORT") != ""
+		if !forReport {
+			defer os.Remove(pathGotSVG)
+		}
 
+		// Check that it's valid SVG
 		var xmlParsed interface{}
 		err = xml.Unmarshal(svgBytes, &xmlParsed)
 		assert.Success(t, err)
@@ -140,6 +149,9 @@ func run(t *testing.T, tc testCase) {
 		if os.Getenv("SKIP_SVG_CHECK") == "" {
 			err = diff.Testdata(filepath.Join(dataPath, "sketch"), ".svg", svgBytes)
 			assert.Success(t, err)
+		}
+		if forReport {
+			os.Remove(pathGotSVG)
 		}
 	}
 }

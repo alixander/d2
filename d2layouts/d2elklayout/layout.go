@@ -9,9 +9,9 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"math"
+	"strings"
 
-	"rogchap.com/v8go"
+	"github.com/dop251/goja"
 
 	"oss.terrastruct.com/util-go/xdefer"
 
@@ -21,6 +21,7 @@ import (
 	"oss.terrastruct.com/d2/d2target"
 	"oss.terrastruct.com/d2/lib/geo"
 	"oss.terrastruct.com/d2/lib/label"
+	"oss.terrastruct.com/d2/lib/shape"
 )
 
 //go:embed elk.js
@@ -41,11 +42,12 @@ type ELKNode struct {
 }
 
 type ELKLabel struct {
-	Text   string  `json:"text"`
-	X      float64 `json:"x"`
-	Y      float64 `json:"y"`
-	Width  float64 `json:"width"`
-	Height float64 `json:"height"`
+	Text          string            `json:"text"`
+	X             float64           `json:"x"`
+	Y             float64           `json:"y"`
+	Width         float64           `json:"width"`
+	Height        float64           `json:"height"`
+	LayoutOptions *ELKLayoutOptions `json:"layoutOptions,omitempty"`
 }
 
 type ELKPoint struct {
@@ -76,51 +78,44 @@ type ELKGraph struct {
 }
 
 type ELKLayoutOptions struct {
-	Algorithm         string  `json:"elk.algorithm,omitempty"`
-	HierarchyHandling string  `json:"elk.hierarchyHandling,omitempty"`
-	NodeSpacing       float64 `json:"spacing.nodeNodeBetweenLayers,omitempty"`
-	Padding           string  `json:"elk.padding,omitempty"`
-	EdgeNodeSpacing   float64 `json:"spacing.edgeNodeBetweenLayers,omitempty"`
-	Direction         string  `json:"elk.direction"`
+	Algorithm           string  `json:"elk.algorithm,omitempty"`
+	HierarchyHandling   string  `json:"elk.hierarchyHandling,omitempty"`
+	NodeSpacing         float64 `json:"spacing.nodeNodeBetweenLayers,omitempty"`
+	Padding             string  `json:"elk.padding,omitempty"`
+	EdgeNodeSpacing     float64 `json:"spacing.edgeNodeBetweenLayers,omitempty"`
+	Direction           string  `json:"elk.direction"`
+	SelfLoopSpacing     float64 `json:"elk.spacing.nodeSelfLoop"`
+	InlineEdgeLabels    bool    `json:"elk.edgeLabels.inline,omitempty"`
+	ConsiderModelOrder  string  `json:"elk.layered.considerModelOrder.strategy,omitempty"`
+	ForceNodeModelOrder bool    `json:"elk.layered.crossingMinimization.forceNodeModelOrder,omitempty"`
 }
 
 func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 	defer xdefer.Errorf(&err, "failed to ELK layout")
 
-	iso := v8go.NewIsolate()
-	global := v8go.NewObjectTemplate(iso)
+	vm := goja.New()
 
-	// setTimeout is not defined by in v8go global
-	// As far as I can tell, it's not actually useful in elk.js
-	// The comment above one of the instances it's used is "why do we even need this"
-	// and it's a timeout of 0.
-	// If weird things happen though, look here.
-	setTimeout := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
-		args := info.Args()
-		fn, _ := args[0].AsFunction()
-		receiver := v8go.NewObjectTemplate(iso)
-		s, _ := receiver.NewInstance(info.Context())
-		fn.Call(s)
-
-		return s.Value
-	})
-	global.Set("setTimeout", setTimeout, v8go.ReadOnly)
-
-	v8ctx := v8go.NewContext(iso, global)
-	if _, err := v8ctx.RunScript(elkJS, "elk.js"); err != nil {
+	console := vm.NewObject()
+	if err := vm.Set("console", console); err != nil {
 		return err
 	}
-	if _, err := v8ctx.RunScript(setupJS, "setup.js"); err != nil {
+
+	if _, err := vm.RunString(elkJS); err != nil {
+		return err
+	}
+	if _, err := vm.RunString(setupJS); err != nil {
 		return err
 	}
 
 	elkGraph := &ELKGraph{
 		ID: "root",
 		LayoutOptions: &ELKLayoutOptions{
-			Algorithm:         "layered",
-			HierarchyHandling: "INCLUDE_CHILDREN",
-			NodeSpacing:       100.0,
-			EdgeNodeSpacing:   50.0,
+			Algorithm:          "layered",
+			HierarchyHandling:  "INCLUDE_CHILDREN",
+			NodeSpacing:        100.0,
+			EdgeNodeSpacing:    50.0,
+			SelfLoopSpacing:    50.0,
+			ConsiderModelOrder: "NODES_AND_EDGES",
 		},
 	}
 	switch g.Root.Attributes.Direction.Value {
@@ -151,15 +146,21 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 	}
 
 	walk(g.Root, nil, func(obj, parent *d2graph.Object) {
+		height := obj.Height
+		if obj.Attributes.Shape.Value == d2target.ShapeImage || obj.Attributes.Icon != nil {
+			height += float64(*obj.LabelHeight) + label.PADDING
+		}
+
 		n := &ELKNode{
 			ID:     obj.AbsID(),
 			Width:  obj.Width,
-			Height: obj.Height,
+			Height: height,
 		}
 
 		if len(obj.ChildrenArray) > 0 {
 			n.LayoutOptions = &ELKLayoutOptions{
-				Padding: "[top=75,left=75,bottom=75,right=75]",
+				Padding:             "[top=75,left=75,bottom=75,right=75]",
+				ForceNodeModelOrder: true,
 			}
 		}
 
@@ -190,6 +191,9 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 				Text:   edge.Attributes.Label.Value,
 				Width:  float64(edge.LabelDimensions.Width),
 				Height: float64(edge.LabelDimensions.Height),
+				LayoutOptions: &ELKLayoutOptions{
+					InlineEdgeLabels: true,
+				},
 			})
 		}
 		elkGraph.Edges = append(elkGraph.Edges, e)
@@ -203,37 +207,41 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 
 	loadScript := fmt.Sprintf(`var graph = %s`, raw)
 
-	if _, err := v8ctx.RunScript(loadScript, "load.js"); err != nil {
+	if _, err := vm.RunString(loadScript); err != nil {
 		return err
 	}
 
-	val, err := v8ctx.RunScript(`elk.layout(graph)
+	val, err := vm.RunString(`elk.layout(graph)
 .then(s => s)
 .catch(s => s)
-`, "layout.js")
+`)
 
 	if err != nil {
 		return err
 	}
 
-	promise, err := val.AsPromise()
+	p := val.Export()
 	if err != nil {
 		return err
 	}
 
-	for promise.State() == v8go.Pending {
+	promise := p.(*goja.Promise)
+
+	for promise.State() == goja.PromiseStatePending {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 		continue
 	}
 
-	jsonOut, err := promise.Result().MarshalJSON()
+	jsonOut := promise.Result().Export().(map[string]interface{})
+
+	jsonBytes, err := json.Marshal(jsonOut)
 	if err != nil {
 		return err
 	}
 
-	err = json.Unmarshal(jsonOut, &elkGraph)
+	err = json.Unmarshal(jsonBytes, &elkGraph)
 	if err != nil {
 		return err
 	}
@@ -248,7 +256,7 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 			parentX = parent.TopLeft.X
 			parentY = parent.TopLeft.Y
 		}
-		obj.TopLeft = geo.NewPoint(math.Round(parentX+n.X), math.Round(parentY+n.Y))
+		obj.TopLeft = geo.NewPoint(parentX+n.X, parentY+n.Y)
 		obj.Width = n.Width
 		obj.Height = n.Height
 
@@ -256,7 +264,10 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 			if len(obj.ChildrenArray) > 0 {
 				obj.LabelPosition = go2.Pointer(string(label.InsideTopCenter))
 			} else if obj.Attributes.Shape.Value == d2target.ShapeImage {
-				obj.LabelPosition = go2.Pointer(string(label.OutsideTopCenter))
+				obj.LabelPosition = go2.Pointer(string(label.OutsideBottomCenter))
+				obj.Height -= float64(*obj.LabelHeight) + label.PADDING
+			} else if obj.Attributes.Icon != nil {
+				obj.LabelPosition = go2.Pointer(string(label.InsideTopCenter))
 			} else {
 				obj.LabelPosition = go2.Pointer(string(label.InsideMiddleCenter))
 			}
@@ -295,6 +306,14 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 				Y: parentY + s.End.Y,
 			})
 		}
+
+		startIndex, endIndex := 0, len(points)-1
+		srcShape := shape.NewShape(d2target.DSL_SHAPE_TO_SHAPE_TYPE[strings.ToLower(edge.Src.Attributes.Shape.Value)], edge.Src.Box)
+		dstShape := shape.NewShape(d2target.DSL_SHAPE_TO_SHAPE_TYPE[strings.ToLower(edge.Dst.Attributes.Shape.Value)], edge.Dst.Box)
+
+		// trace the edge to the specific shape's border
+		points[startIndex] = shape.TraceToShapeBorder(srcShape, points[startIndex], points[startIndex+1])
+		points[endIndex] = shape.TraceToShapeBorder(dstShape, points[endIndex], points[endIndex-1])
 
 		if edge.Attributes.Label.Value != "" {
 			edge.LabelPosition = go2.Pointer(string(label.InsideMiddleCenter))

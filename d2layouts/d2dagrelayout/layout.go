@@ -6,10 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 
 	"cdr.dev/slog"
-	v8 "rogchap.com/v8go"
+	"github.com/dop251/goja"
 
 	"oss.terrastruct.com/util-go/xdefer"
 
@@ -55,19 +56,19 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 	defer xdefer.Errorf(&err, "failed to dagre layout")
 
 	debugJS := false
-	v8ctx := v8.NewContext()
-	if _, err := v8ctx.RunScript(dagreJS, "dagre.js"); err != nil {
+	vm := goja.New()
+	if _, err := vm.RunString(dagreJS); err != nil {
 		return err
 	}
-	if _, err := v8ctx.RunScript(setupJS, "setup.js"); err != nil {
+	if _, err := vm.RunString(setupJS); err != nil {
 		return err
 	}
 
 	rootAttrs := dagreGraphAttrs{
-		ranksep: 100,
 		edgesep: 40,
 		nodesep: 60,
 	}
+	isHorizontal := false
 	switch g.Root.Attributes.Direction.Value {
 	case "down":
 		rootAttrs.rankdir = "TB"
@@ -75,9 +76,11 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 	case "right":
 		rootAttrs.rankdir = "LR"
 		rootAttrs.align = "UL"
+		isHorizontal = true
 	case "left":
 		rootAttrs.rankdir = "RL"
 		rootAttrs.align = "BR"
+		isHorizontal = true
 	case "up":
 		rootAttrs.rankdir = "BT"
 		rootAttrs.align = "BR"
@@ -85,8 +88,19 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 		rootAttrs.rankdir = "TB"
 		rootAttrs.align = "UL"
 	}
+
+	maxLabelSize := 0
+	for _, edge := range g.Edges {
+		size := edge.LabelDimensions.Width
+		if !isHorizontal {
+			size = edge.LabelDimensions.Height
+		}
+		maxLabelSize = go2.Max(maxLabelSize, size)
+	}
+	rootAttrs.ranksep = go2.Max(100, maxLabelSize+40)
+
 	configJS := setGraphAttrs(rootAttrs)
-	if _, err := v8ctx.RunScript(configJS, "config.js"); err != nil {
+	if _, err := vm.RunString(configJS); err != nil {
 		return err
 	}
 
@@ -95,7 +109,14 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 	for _, obj := range g.Objects {
 		id := obj.AbsID()
 		idToObj[id] = obj
-		loadScript += generateAddNodeLine(id, int(obj.Width), int(obj.Height))
+
+		height := obj.Height
+		if obj.LabelWidth != nil && obj.LabelHeight != nil {
+			if obj.Attributes.Shape.Value == d2target.ShapeImage || obj.Attributes.Icon != nil {
+				height += float64(*obj.LabelHeight) + label.PADDING
+			}
+		}
+		loadScript += generateAddNodeLine(id, int(obj.Width), int(height))
 		if obj.Parent != g.Root {
 			loadScript += generateAddParentLine(id, obj.Parent.AbsID())
 		}
@@ -122,11 +143,11 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 		log.Debug(ctx, "script", slog.F("all", setupJS+configJS+loadScript))
 	}
 
-	if _, err := v8ctx.RunScript(loadScript, "load.js"); err != nil {
+	if _, err := vm.RunString(loadScript); err != nil {
 		return err
 	}
 
-	if _, err := v8ctx.RunScript(`dagre.layout(g)`, "layout.js"); err != nil {
+	if _, err := vm.RunString(`dagre.layout(g)`); err != nil {
 		if debugJS {
 			log.Warn(ctx, "layout error", slog.F("err", err))
 		}
@@ -134,7 +155,7 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 	}
 
 	for i := range g.Objects {
-		val, err := v8ctx.RunScript(fmt.Sprintf("JSON.stringify(g.node(g.nodes()[%d]))", i), "value.js")
+		val, err := vm.RunString(fmt.Sprintf("JSON.stringify(g.node(g.nodes()[%d]))", i))
 		if err != nil {
 			return err
 		}
@@ -157,7 +178,11 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 			if len(obj.ChildrenArray) > 0 {
 				obj.LabelPosition = go2.Pointer(string(label.InsideTopCenter))
 			} else if obj.Attributes.Shape.Value == d2target.ShapeImage {
-				obj.LabelPosition = go2.Pointer(string(label.OutsideTopCenter))
+				obj.LabelPosition = go2.Pointer(string(label.OutsideBottomCenter))
+				// remove the extra height we added to the node when passing to dagre
+				obj.Height -= float64(*obj.LabelHeight) + label.PADDING
+			} else if obj.Attributes.Icon != nil {
+				obj.LabelPosition = go2.Pointer(string(label.InsideTopCenter))
 			} else {
 				obj.LabelPosition = go2.Pointer(string(label.InsideMiddleCenter))
 			}
@@ -168,7 +193,7 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 	}
 
 	for i, edge := range g.Edges {
-		val, err := v8ctx.RunScript(fmt.Sprintf("JSON.stringify(g.edge(g.edges()[%d]))", i), "value.js")
+		val, err := vm.RunString(fmt.Sprintf("JSON.stringify(g.edge(g.edges()[%d]))", i))
 		if err != nil {
 			return err
 		}
@@ -193,17 +218,19 @@ func Layout(ctx context.Context, g *d2graph.Graph) (err error) {
 		start, end := points[startIndex], points[endIndex]
 
 		// chop where edge crosses the source/target boxes since container edges were routed to a descendant
-		for i := 1; i < len(points); i++ {
-			segment := *geo.NewSegment(points[i-1], points[i])
-			if intersections := edge.Src.Box.Intersections(segment); len(intersections) > 0 {
-				start = intersections[0]
-				startIndex = i - 1
-			}
+		if edge.Src != edge.Dst {
+			for i := 1; i < len(points); i++ {
+				segment := *geo.NewSegment(points[i-1], points[i])
+				if intersections := edge.Src.Box.Intersections(segment); len(intersections) > 0 {
+					start = intersections[0]
+					startIndex = i - 1
+				}
 
-			if intersections := edge.Dst.Box.Intersections(segment); len(intersections) > 0 {
-				end = intersections[0]
-				endIndex = i
-				break
+				if intersections := edge.Dst.Box.Intersections(segment); len(intersections) > 0 {
+					end = intersections[0]
+					endIndex = i
+					break
+				}
 			}
 		}
 
@@ -262,15 +289,27 @@ func setGraphAttrs(attrs dagreGraphAttrs) string {
 	)
 }
 
+func escapeID(id string) string {
+	// fixes \\
+	id = strings.ReplaceAll(id, "\\", `\\`)
+	// replaces \n with \\n whenever \n is not preceded by \ (does not replace \\n)
+	re := regexp.MustCompile(`[^\\]\n`)
+	id = re.ReplaceAllString(id, `\\n`)
+	// avoid an unescaped \r becoming a \n in the layout result
+	id = strings.ReplaceAll(id, "\r", `\r`)
+	return id
+}
+
 func generateAddNodeLine(id string, width, height int) string {
+	id = escapeID(id)
 	return fmt.Sprintf("g.setNode(`%s`, { id: `%s`, width: %d, height: %d });\n", id, id, width, height)
 }
 
 func generateAddParentLine(childID, parentID string) string {
-	return fmt.Sprintf("g.setParent(`%s`, `%s`);\n", childID, parentID)
+	return fmt.Sprintf("g.setParent(`%s`, `%s`);\n", escapeID(childID), escapeID(parentID))
 }
 
 func generateAddEdgeLine(fromID, toID, edgeID string) string {
 	// in dagre v is from, w is to, name is to uniquely identify
-	return fmt.Sprintf("g.setEdge({v:`%s`, w:`%s`, name:`%s` });\n", fromID, toID, edgeID)
+	return fmt.Sprintf("g.setEdge({v:`%s`, w:`%s`, name:`%s` });\n", escapeID(fromID), escapeID(toID), escapeID(edgeID))
 }
