@@ -6,7 +6,7 @@
       "id": "your love life will be",
       "type": "rectangle",
       "pos": {
-        "x": 37,
+        "x": 61,
         "y": 12
       },
       "width": 187,
@@ -48,7 +48,7 @@
       "type": "rectangle",
       "pos": {
         "x": 12,
-        "y": 148
+        "y": 158
       },
       "width": 89,
       "height": 66,
@@ -89,7 +89,7 @@
       "type": "rectangle",
       "pos": {
         "x": 121,
-        "y": 148
+        "y": 158
       },
       "width": 130,
       "height": 66,
@@ -129,7 +129,7 @@
       "id": "boredom",
       "type": "rectangle",
       "pos": {
-        "x": 283,
+        "x": 282,
         "y": 12
       },
       "width": 108,
@@ -171,7 +171,7 @@
       "type": "rectangle",
       "pos": {
         "x": 271,
-        "y": 148
+        "y": 158
       },
       "width": 131,
       "height": 66,
@@ -211,7 +211,7 @@
       "id": "Friday",
       "type": "rectangle",
       "pos": {
-        "x": 428,
+        "x": 427,
         "y": 12
       },
       "width": 90,
@@ -253,7 +253,7 @@
       "type": "rectangle",
       "pos": {
         "x": 422,
-        "y": 148
+        "y": 158
       },
       "width": 101,
       "height": 66,
@@ -293,10 +293,10 @@
       "id": "Insomnia",
       "type": "rectangle",
       "pos": {
-        "x": 566,
+        "x": 635,
         "y": 12
       },
-      "width": 252,
+      "width": 110,
       "height": 66,
       "opacity": 1,
       "strokeDash": 0,
@@ -335,7 +335,7 @@
       "type": "rectangle",
       "pos": {
         "x": 543,
-        "y": 148
+        "y": 158
       },
       "width": 85,
       "height": 66,
@@ -376,7 +376,7 @@
       "type": "rectangle",
       "pos": {
         "x": 648,
-        "y": 148
+        "y": 158
       },
       "width": 84,
       "height": 66,
@@ -417,7 +417,7 @@
       "type": "rectangle",
       "pos": {
         "x": 752,
-        "y": 148
+        "y": 158
       },
       "width": 91,
       "height": 66,
@@ -457,7 +457,7 @@
       "id": "Listen",
       "type": "rectangle",
       "pos": {
-        "x": 838,
+        "x": 835,
         "y": 12
       },
       "width": 88,
@@ -498,8 +498,8 @@
       "id": "Talk",
       "type": "rectangle",
       "pos": {
-        "x": 844,
-        "y": 284
+        "x": 841,
+        "y": 294
       },
       "width": 76,
       "height": 66,
@@ -563,12 +563,20 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 57,
+          "x": 123.66666666666674,
           "y": 78
         },
         {
-          "x": 57,
-          "y": 148
+          "x": 123.66666666666674,
+          "y": 118
+        },
+        {
+          "x": 56.5,
+          "y": 118
+        },
+        {
+          "x": 56.5,
+          "y": 158
         }
       ],
       "animated": true,
@@ -607,7 +615,7 @@
         },
         {
           "x": 186,
-          "y": 148
+          "y": 158
         }
       ],
       "animated": true,
@@ -641,12 +649,12 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 337,
+          "x": 336.5,
           "y": 78
         },
         {
-          "x": 337,
-          "y": 148
+          "x": 336.5,
+          "y": 158
         }
       ],
       "animated": true,
@@ -680,12 +688,12 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 473,
+          "x": 472.5,
           "y": 78
         },
         {
-          "x": 473,
-          "y": 148
+          "x": 472.5,
+          "y": 158
         }
       ],
       "animated": true,
@@ -719,12 +727,20 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 586,
+          "x": 662.5,
           "y": 78
         },
         {
-          "x": 586,
-          "y": 148
+          "x": 662.5,
+          "y": 118
+        },
+        {
+          "x": 585.5,
+          "y": 118
+        },
+        {
+          "x": 585.5,
+          "y": 158
         }
       ],
       "animated": true,
@@ -763,7 +779,7 @@
         },
         {
           "x": 690,
-          "y": 148
+          "y": 158
         }
       ],
       "animated": true,
@@ -797,12 +813,20 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 798,
+          "x": 717.5,
           "y": 78
         },
         {
-          "x": 798,
-          "y": 148
+          "x": 717.5,
+          "y": 118
+        },
+        {
+          "x": 797.5,
+          "y": 118
+        },
+        {
+          "x": 797.5,
+          "y": 158
         }
       ],
       "animated": true,
@@ -836,12 +860,12 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 882,
+          "x": 879,
           "y": 78
         },
         {
-          "x": 882,
-          "y": 284
+          "x": 879,
+          "y": 294
         }
       ],
       "animated": true,
