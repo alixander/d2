@@ -81,7 +81,7 @@
       "id": "users",
       "type": "sql_table",
       "pos": {
-        "x": 12,
+        "x": 248,
         "y": 450
       },
       "width": 512,
@@ -265,7 +265,7 @@
       "id": "code",
       "type": "code",
       "pos": {
-        "x": 12,
+        "x": 248,
         "y": 706
       },
       "width": 512,
@@ -305,7 +305,7 @@
       "id": "package",
       "type": "package",
       "pos": {
-        "x": 12,
+        "x": 248,
         "y": 841
       },
       "width": 512,
@@ -492,7 +492,7 @@
         },
         {
           "x": 268,
-          "y": 861
+          "y": 841
         }
       ],
       "animated": false,

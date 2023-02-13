@@ -6,7 +6,7 @@
       "id": "1",
       "type": "rectangle",
       "pos": {
-        "x": 12,
+        "x": 13,
         "y": 12
       },
       "width": 52,
@@ -88,7 +88,7 @@
       "id": "foo baz",
       "type": "rectangle",
       "pos": {
-        "x": 84,
+        "x": 85,
         "y": 12
       },
       "width": 99,
@@ -129,7 +129,7 @@
       "id": "hello",
       "type": "rectangle",
       "pos": {
-        "x": 94,
+        "x": 95,
         "y": 148
       },
       "width": 80,
@@ -194,11 +194,11 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 38.5,
+          "x": 39,
           "y": 78
         },
         {
-          "x": 38.5,
+          "x": 39,
           "y": 148
         }
       ],
@@ -233,11 +233,11 @@
       "labelPercentage": 0,
       "route": [
         {
-          "x": 134,
+          "x": 135,
           "y": 78
         },
         {
-          "x": 134,
+          "x": 135,
           "y": 148
         }
       ],

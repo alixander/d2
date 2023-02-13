@@ -94,6 +94,11 @@ var DefaultOpts = ConfigurableOpts{
 }
 
 type elkOpts struct {
+	NodePlacementStrategy string `json:"elk.layered.nodePlacement.strategy,omitempty"`
+	NodeFlexibility       string `json:"elk.layered.nodePlacement.networkSimplex.nodeFlexibility,omitempty"`
+	PortSurrounding       string `json:"elk.spacing.portsSurrounding"`
+
+	EdgeRouting                  string `json:"elk.edgeRouting,omitempty"`
 	Thoroughness                 int    `json:"elk.layered.thoroughness,omitempty"`
 	EdgeEdgeBetweenLayersSpacing int    `json:"elk.layered.spacing.edgeEdgeBetweenLayers,omitempty"`
 	Direction                    string `json:"elk.direction"`
@@ -115,51 +120,6 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 	}
 	defer xdefer.Errorf(&err, "failed to ELK layout")
 
-	vm := goja.New()
-
-	console := vm.NewObject()
-	if err := vm.Set("console", console); err != nil {
-		return err
-	}
-
-	if _, err := vm.RunString(elkJS); err != nil {
-		return err
-	}
-	if _, err := vm.RunString(setupJS); err != nil {
-		return err
-	}
-
-	elkGraph := &ELKGraph{
-		ID: "root",
-		LayoutOptions: &elkOpts{
-			Thoroughness:                 8,
-			EdgeEdgeBetweenLayersSpacing: 50,
-			HierarchyHandling:            "INCLUDE_CHILDREN",
-			ConsiderModelOrder:           "NODES_AND_EDGES",
-			ConfigurableOpts: ConfigurableOpts{
-				Algorithm:       opts.Algorithm,
-				NodeSpacing:     opts.NodeSpacing,
-				EdgeNodeSpacing: opts.EdgeNodeSpacing,
-				SelfLoopSpacing: opts.SelfLoopSpacing,
-			},
-		},
-	}
-	switch g.Root.Attributes.Direction.Value {
-	case "down":
-		elkGraph.LayoutOptions.Direction = "DOWN"
-	case "up":
-		elkGraph.LayoutOptions.Direction = "UP"
-	case "right":
-		elkGraph.LayoutOptions.Direction = "RIGHT"
-	case "left":
-		elkGraph.LayoutOptions.Direction = "LEFT"
-	default:
-		elkGraph.LayoutOptions.Direction = "DOWN"
-	}
-
-	elkNodes := make(map[*d2graph.Object]*ELKNode)
-	elkEdges := make(map[*d2graph.Edge]*ELKEdge)
-
 	// BFS
 	var walk func(*d2graph.Object, *d2graph.Object, func(*d2graph.Object, *d2graph.Object))
 	walk = func(obj, parent *d2graph.Object, fn func(*d2graph.Object, *d2graph.Object)) {
@@ -171,116 +131,180 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 		}
 	}
 
-	walk(g.Root, nil, func(obj, parent *d2graph.Object) {
-		height := obj.Height
-		if obj.LabelWidth != nil && obj.LabelHeight != nil {
-			if obj.Attributes.Shape.Value == d2target.ShapeImage || obj.Attributes.Icon != nil {
-				height += float64(*obj.LabelHeight) + label.PADDING
-			}
+	elkGraph := &ELKGraph{}
+	var elkNodes map[*d2graph.Object]*ELKNode
+	var elkEdges map[*d2graph.Edge]*ELKEdge
+	// Use network simplex vast majority of times, but if it errors (which it does in one of our test cases for reasons I can't figure out: self-referencing), then use BRANDES_KOEPF.
+	for _, strat := range []string{"NETWORK_SIMPLEX", "BRANDES_KOEPF"} {
+		vm := goja.New()
+
+		console := vm.NewObject()
+		if err := vm.Set("console", console); err != nil {
+			return err
 		}
 
-		n := &ELKNode{
-			ID:     obj.AbsID(),
-			Width:  obj.Width,
-			Height: height,
+		if _, err := vm.RunString(elkJS); err != nil {
+			return err
+		}
+		if _, err := vm.RunString(setupJS); err != nil {
+			return err
 		}
 
-		if len(obj.ChildrenArray) > 0 {
-			n.LayoutOptions = &elkOpts{
-				ForceNodeModelOrder:          true,
+		elkGraph = &ELKGraph{
+			ID: "root",
+			LayoutOptions: &elkOpts{
 				Thoroughness:                 8,
 				EdgeEdgeBetweenLayersSpacing: 50,
 				HierarchyHandling:            "INCLUDE_CHILDREN",
 				ConsiderModelOrder:           "NODES_AND_EDGES",
+				NodePlacementStrategy:        strat,
+				PortSurrounding:              "[top=20.0,left=20.0,bottom=20.0,right=20.0]",
 				ConfigurableOpts: ConfigurableOpts{
+					Algorithm:       opts.Algorithm,
 					NodeSpacing:     opts.NodeSpacing,
 					EdgeNodeSpacing: opts.EdgeNodeSpacing,
 					SelfLoopSpacing: opts.SelfLoopSpacing,
-					Padding:         opts.Padding,
+				},
+			},
+		}
+		switch g.Root.Attributes.Direction.Value {
+		case "down":
+			elkGraph.LayoutOptions.Direction = "DOWN"
+		case "up":
+			elkGraph.LayoutOptions.Direction = "UP"
+		case "right":
+			elkGraph.LayoutOptions.Direction = "RIGHT"
+		case "left":
+			elkGraph.LayoutOptions.Direction = "LEFT"
+		default:
+			elkGraph.LayoutOptions.Direction = "DOWN"
+		}
+
+		elkNodes = make(map[*d2graph.Object]*ELKNode)
+		elkEdges = make(map[*d2graph.Edge]*ELKEdge)
+
+		walk(g.Root, nil, func(obj, parent *d2graph.Object) {
+			height := obj.Height
+			if obj.LabelWidth != nil && obj.LabelHeight != nil {
+				if obj.Attributes.Shape.Value == d2target.ShapeImage || obj.Attributes.Icon != nil {
+					height += float64(*obj.LabelHeight) + label.PADDING
+				}
+			}
+
+			n := &ELKNode{
+				ID:     obj.AbsID(),
+				Width:  obj.Width,
+				Height: height,
+				LayoutOptions: &elkOpts{
+					NodeFlexibility: "NODE_SIZE",
 				},
 			}
+
+			if len(obj.ChildrenArray) > 0 {
+				n.LayoutOptions = &elkOpts{
+					ForceNodeModelOrder:          true,
+					Thoroughness:                 8,
+					EdgeEdgeBetweenLayersSpacing: 50,
+					HierarchyHandling:            "INCLUDE_CHILDREN",
+					ConsiderModelOrder:           "NODES_AND_EDGES",
+					NodeFlexibility:              "NODE_SIZE",
+					ConfigurableOpts: ConfigurableOpts{
+						NodeSpacing:     opts.NodeSpacing,
+						EdgeNodeSpacing: opts.EdgeNodeSpacing,
+						SelfLoopSpacing: opts.SelfLoopSpacing,
+						Padding:         opts.Padding,
+					},
+				}
+			}
+
+			if obj.LabelWidth != nil && obj.LabelHeight != nil {
+				n.Labels = append(n.Labels, &ELKLabel{
+					Text:   obj.Attributes.Label.Value,
+					Width:  float64(*obj.LabelWidth),
+					Height: float64(*obj.LabelHeight),
+				})
+			}
+
+			if parent == g.Root {
+				elkGraph.Children = append(elkGraph.Children, n)
+			} else {
+				elkNodes[parent].Children = append(elkNodes[parent].Children, n)
+			}
+			elkNodes[obj] = n
+		})
+
+		for _, edge := range g.Edges {
+			e := &ELKEdge{
+				ID:      edge.AbsID(),
+				Sources: []string{edge.Src.AbsID()},
+				Targets: []string{edge.Dst.AbsID()},
+			}
+			if edge.Attributes.Label.Value != "" {
+				e.Labels = append(e.Labels, &ELKLabel{
+					Text:   edge.Attributes.Label.Value,
+					Width:  float64(edge.LabelDimensions.Width),
+					Height: float64(edge.LabelDimensions.Height),
+					LayoutOptions: &elkOpts{
+						InlineEdgeLabels: true,
+					},
+				})
+			}
+			elkGraph.Edges = append(elkGraph.Edges, e)
+			elkEdges[edge] = e
 		}
 
-		if obj.LabelWidth != nil && obj.LabelHeight != nil {
-			n.Labels = append(n.Labels, &ELKLabel{
-				Text:   obj.Attributes.Label.Value,
-				Width:  float64(*obj.LabelWidth),
-				Height: float64(*obj.LabelHeight),
-			})
-		}
-
-		if parent == g.Root {
-			elkGraph.Children = append(elkGraph.Children, n)
-		} else {
-			elkNodes[parent].Children = append(elkNodes[parent].Children, n)
-		}
-		elkNodes[obj] = n
-	})
-
-	for _, edge := range g.Edges {
-		e := &ELKEdge{
-			ID:      edge.AbsID(),
-			Sources: []string{edge.Src.AbsID()},
-			Targets: []string{edge.Dst.AbsID()},
-		}
-		if edge.Attributes.Label.Value != "" {
-			e.Labels = append(e.Labels, &ELKLabel{
-				Text:   edge.Attributes.Label.Value,
-				Width:  float64(edge.LabelDimensions.Width),
-				Height: float64(edge.LabelDimensions.Height),
-				LayoutOptions: &elkOpts{
-					InlineEdgeLabels: true,
-				},
-			})
-		}
-		elkGraph.Edges = append(elkGraph.Edges, e)
-		elkEdges[edge] = e
-	}
-
-	raw, err := json.Marshal(elkGraph)
-	if err != nil {
-		return err
-	}
-
-	loadScript := fmt.Sprintf(`var graph = %s`, raw)
-
-	if _, err := vm.RunString(loadScript); err != nil {
-		return err
-	}
-
-	val, err := vm.RunString(`elk.layout(graph)
-.then(s => s)
-.catch(s => s)
-`)
-
-	if err != nil {
-		return err
-	}
-
-	p := val.Export()
-	if err != nil {
-		return err
-	}
-
-	promise := p.(*goja.Promise)
-
-	for promise.State() == goja.PromiseStatePending {
-		if err := ctx.Err(); err != nil {
+		raw, err := json.Marshal(elkGraph)
+		if err != nil {
 			return err
 		}
-		continue
-	}
 
-	jsonOut := promise.Result().Export().(map[string]interface{})
+		loadScript := fmt.Sprintf(`var graph = %s`, raw)
 
-	jsonBytes, err := json.Marshal(jsonOut)
-	if err != nil {
-		return err
-	}
+		if _, err := vm.RunString(loadScript); err != nil {
+			return err
+		}
 
-	err = json.Unmarshal(jsonBytes, &elkGraph)
-	if err != nil {
-		return err
+		val, err := vm.RunString(`elk.layout(graph)
+.then(s => s)
+`)
+
+		if err != nil {
+			return err
+		}
+
+		p := val.Export()
+		if err != nil {
+			return err
+		}
+
+		promise := p.(*goja.Promise)
+
+		for promise.State() == goja.PromiseStatePending {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if promise.State() == goja.PromiseStateRejected {
+			if strat == "BRANDES_KOEPF" {
+				return fmt.Errorf("ELK failed for unknown reasons")
+			}
+			continue
+		}
+
+		jsonOut := promise.Result().Export().(map[string]interface{})
+
+		jsonBytes, err := json.Marshal(jsonOut)
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal(jsonBytes, &elkGraph)
+		if err != nil {
+			return err
+		}
+		break
 	}
 
 	byID := make(map[string]*d2graph.Object)

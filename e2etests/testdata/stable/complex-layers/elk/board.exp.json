@@ -621,7 +621,7 @@
               "id": "solicit quotes",
               "type": "rectangle",
               "pos": {
-                "x": 21,
+                "x": 22,
                 "y": 148
               },
               "width": 140,
@@ -686,11 +686,11 @@
               "labelPercentage": 0,
               "route": [
                 {
-                  "x": 91.5,
+                  "x": 92,
                   "y": 78
                 },
                 {
-                  "x": 91.5,
+                  "x": 92,
                   "y": 148
                 }
               ],
@@ -750,7 +750,7 @@
               "id": "negotiate",
               "type": "rectangle",
               "pos": {
-                "x": 27,
+                "x": 28,
                 "y": 148
               },
               "width": 112,
@@ -815,11 +815,11 @@
               "labelPercentage": 0,
               "route": [
                 {
-                  "x": 83.5,
+                  "x": 84,
                   "y": 78
                 },
                 {
-                  "x": 83.5,
+                  "x": 84,
                   "y": 148
                 }
               ],
@@ -838,7 +838,7 @@
               "id": "negotiate",
               "type": "rectangle",
               "pos": {
-                "x": 39,
+                "x": 40,
                 "y": 12
               },
               "width": 112,
@@ -944,11 +944,11 @@
               "labelPercentage": 0,
               "route": [
                 {
-                  "x": 95.5,
+                  "x": 96,
                   "y": 78
                 },
                 {
-                  "x": 95.5,
+                  "x": 96,
                   "y": 148
                 }
               ],
