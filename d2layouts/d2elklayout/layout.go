@@ -88,13 +88,14 @@ type ConfigurableOpts struct {
 var DefaultOpts = ConfigurableOpts{
 	Algorithm:       "layered",
 	NodeSpacing:     70.0,
-	Padding:         "[top=50,left=50,bottom=50,right=50]",
+	Padding:         "[top=40,left=40,bottom=40,right=40]",
 	EdgeNodeSpacing: 40.0,
 	SelfLoopSpacing: 50.0,
 }
 
 type elkOpts struct {
 	NodePlacementStrategy string `json:"elk.layered.nodePlacement.strategy,omitempty"`
+	FavorStraightEdges    bool   `json:"elk.layered.nodePlacement.favorStraightEdges"`
 	NodeFlexibility       string `json:"elk.layered.nodePlacement.networkSimplex.nodeFlexibility,omitempty"`
 	PortSurrounding       string `json:"elk.spacing.portsSurrounding"`
 
@@ -158,7 +159,8 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 				HierarchyHandling:            "INCLUDE_CHILDREN",
 				ConsiderModelOrder:           "NODES_AND_EDGES",
 				NodePlacementStrategy:        strat,
-				PortSurrounding:              "[top=20.0,left=20.0,bottom=20.0,right=20.0]",
+				FavorStraightEdges:           false,
+				PortSurrounding:              "[top=30.0,left=30.0,bottom=30.0,right=30.0]",
 				ConfigurableOpts: ConfigurableOpts{
 					Algorithm:       opts.Algorithm,
 					NodeSpacing:     opts.NodeSpacing,
@@ -196,7 +198,8 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 				Width:  obj.Width,
 				Height: height,
 				LayoutOptions: &elkOpts{
-					NodeFlexibility: "NODE_SIZE",
+					NodeFlexibility:    "NODE_SIZE",
+					FavorStraightEdges: false,
 				},
 			}
 
@@ -205,6 +208,9 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 					ForceNodeModelOrder:          true,
 					Thoroughness:                 8,
 					EdgeEdgeBetweenLayersSpacing: 50,
+					NodePlacementStrategy:        strat,
+					FavorStraightEdges:           false,
+					PortSurrounding:              "[top=30.0,left=30.0,bottom=30.0,right=30.0]",
 					HierarchyHandling:            "INCLUDE_CHILDREN",
 					ConsiderModelOrder:           "NODES_AND_EDGES",
 					NodeFlexibility:              "NODE_SIZE",
@@ -215,6 +221,10 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 						Padding:         opts.Padding,
 					},
 				}
+			}
+
+			if obj.Attributes.Shape.Value == d2target.ShapeImage {
+				n.LayoutOptions.NodeFlexibility = ""
 			}
 
 			if obj.LabelWidth != nil && obj.LabelHeight != nil {
