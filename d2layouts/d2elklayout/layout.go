@@ -94,6 +94,7 @@ var DefaultOpts = ConfigurableOpts{
 }
 
 type elkOpts struct {
+	FavorStraightEdges           bool   `json:"elk.layered.nodePlacement.favorStraightEdges"`
 	Thoroughness                 int    `json:"elk.layered.thoroughness,omitempty"`
 	EdgeEdgeBetweenLayersSpacing int    `json:"elk.layered.spacing.edgeEdgeBetweenLayers,omitempty"`
 	Direction                    string `json:"elk.direction"`
@@ -136,6 +137,7 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 			EdgeEdgeBetweenLayersSpacing: 50,
 			HierarchyHandling:            "INCLUDE_CHILDREN",
 			ConsiderModelOrder:           "NODES_AND_EDGES",
+			FavorStraightEdges:           false,
 			ConfigurableOpts: ConfigurableOpts{
 				Algorithm:       opts.Algorithm,
 				NodeSpacing:     opts.NodeSpacing,
@@ -190,6 +192,7 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 				ForceNodeModelOrder:          true,
 				Thoroughness:                 8,
 				EdgeEdgeBetweenLayersSpacing: 50,
+				FavorStraightEdges:           false,
 				HierarchyHandling:            "INCLUDE_CHILDREN",
 				ConsiderModelOrder:           "NODES_AND_EDGES",
 				ConfigurableOpts: ConfigurableOpts{
