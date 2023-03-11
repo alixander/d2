@@ -582,23 +582,28 @@ func drawConnection(writer io.Writer, labelMaskID string, connection d2target.Co
 	}
 
 	length := geo.Route(connection.Route).Length()
-	if connection.SrcLabel != "" {
+	if connection.SrcLabel != nil {
 		// TODO use arrowhead label dimensions https://github.com/terrastruct/d2/issues/183
 		size := float64(connection.FontSize)
 		position := 0.
 		if length > 0 {
 			position = size / length
 		}
-		fmt.Fprint(writer, renderArrowheadLabel(connection, connection.SrcLabel, position, size, size))
+		fmt.Fprint(writer, renderArrowheadLabel(connection, connection.SrcLabel.Label, position, size, size))
 	}
-	if connection.DstLabel != "" {
+	if connection.DstLabel != nil {
 		// TODO use arrowhead label dimensions https://github.com/terrastruct/d2/issues/183
 		size := float64(connection.FontSize)
 		position := 1.
 		if length > 0 {
 			position -= size / length
+			// if connection.DstArrow != d2target.NoArrowhead {
+			//   strokeWidth := float64(connection.StrokeWidth)
+			//   width, height := arrowheadDimensions(connection.DstArrow, strokeWidth)
+			//   position -= (math.Max(width, height) / 2) / length
+			// }
 		}
-		fmt.Fprint(writer, renderArrowheadLabel(connection, connection.DstLabel, position, size, size))
+		fmt.Fprint(writer, renderArrowheadLabel(connection, connection.DstLabel.Label, position, size, size))
 	}
 	fmt.Fprintf(writer, `</g>`)
 	return

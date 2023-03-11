@@ -287,11 +287,11 @@ type Connection struct {
 
 	Src      string    `json:"src"`
 	SrcArrow Arrowhead `json:"srcArrow"`
-	SrcLabel string    `json:"srcLabel"`
+	SrcLabel *Text     `json:"srcLabel,omitempty"`
 
 	Dst      string    `json:"dst"`
 	DstArrow Arrowhead `json:"dstArrow"`
-	DstLabel string    `json:"dstLabel"`
+	DstLabel *Text     `json:"dstLabel,omitempty"`
 
 	Opacity      float64 `json:"opacity"`
 	StrokeDash   float64 `json:"strokeDash"`

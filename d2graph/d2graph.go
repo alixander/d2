@@ -1373,20 +1373,33 @@ func (g *Graph) SetDimensions(mtexts []*d2target.MText, ruler *textmeasure.Ruler
 		}
 	}
 	for _, edge := range g.Edges {
-		endpointLabels := []string{}
+		t := edge.Text()
 		if edge.SrcArrowhead != nil && edge.SrcArrowhead.Label.Value != "" {
-			endpointLabels = append(endpointLabels, edge.SrcArrowhead.Label.Value)
+			t.Text = edge.SrcArrowhead.Label.Value
+			dims := GetTextDimensions(mtexts, ruler, t, fontFamily)
+			edge.SrcArrowhead.Width = &Scalar{
+				Value: strconv.Itoa(dims.Width),
+			}
+			edge.SrcArrowhead.Height = &Scalar{
+				Value: strconv.Itoa(dims.Height),
+			}
+
+			// Some padding as it's not totally near the end
+			edge.MinWidth += dims.Width + 5
+			edge.MinHeight += dims.Height + 5
 		}
 		if edge.DstArrowhead != nil && edge.DstArrowhead.Label.Value != "" {
-			endpointLabels = append(endpointLabels, edge.DstArrowhead.Label.Value)
-		}
-
-		for _, label := range endpointLabels {
-			t := edge.Text()
-			t.Text = label
+			t.Text = edge.DstArrowhead.Label.Value
 			dims := GetTextDimensions(mtexts, ruler, t, fontFamily)
-			edge.MinWidth += dims.Width
+			edge.DstArrowhead.Width = &Scalar{
+				Value: strconv.Itoa(dims.Width),
+			}
+			edge.DstArrowhead.Height = &Scalar{
+				Value: strconv.Itoa(dims.Height),
+			}
+
 			// Some padding as it's not totally near the end
+			edge.MinWidth += dims.Width + 5
 			edge.MinHeight += dims.Height + 5
 		}
 
