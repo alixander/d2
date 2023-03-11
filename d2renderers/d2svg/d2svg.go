@@ -581,44 +581,44 @@ func drawConnection(writer io.Writer, labelMaskID string, connection d2target.Co
 		fmt.Fprint(writer, textEl.Render())
 	}
 
-	length := geo.Route(connection.Route).Length()
 	if connection.SrcLabel != nil {
-		// TODO use arrowhead label dimensions https://github.com/terrastruct/d2/issues/183
-		size := float64(connection.FontSize)
-		position := 0.
-		if length > 0 {
-			position = size / length
+		arrowheadWidth := 0.
+		arrowheadHeight := 0.
+		if connection.SrcArrow != d2target.NoArrowhead {
+			strokeWidth := float64(connection.StrokeWidth)
+			arrowheadWidth, arrowheadHeight = arrowheadDimensions(connection.SrcArrow, strokeWidth)
 		}
-		fmt.Fprint(writer, renderArrowheadLabel(connection, connection.SrcLabel.Label, position, size, size))
+		fmt.Fprint(writer, renderArrowheadLabel(connection, connection.SrcLabel.Label, true, arrowheadWidth, arrowheadHeight, float64(connection.SrcLabel.LabelWidth), float64(connection.SrcLabel.LabelHeight)))
 	}
 	if connection.DstLabel != nil {
-		// TODO use arrowhead label dimensions https://github.com/terrastruct/d2/issues/183
-		size := float64(connection.FontSize)
-		position := 1.
-		if length > 0 {
-			position -= size / length
-			// if connection.DstArrow != d2target.NoArrowhead {
-			//   strokeWidth := float64(connection.StrokeWidth)
-			//   width, height := arrowheadDimensions(connection.DstArrow, strokeWidth)
-			//   position -= (math.Max(width, height) / 2) / length
-			// }
+		arrowheadWidth := 0.
+		arrowheadHeight := 0.
+		if connection.DstArrow != d2target.NoArrowhead {
+			strokeWidth := float64(connection.StrokeWidth)
+			arrowheadWidth, arrowheadHeight = arrowheadDimensions(connection.DstArrow, strokeWidth)
 		}
-		fmt.Fprint(writer, renderArrowheadLabel(connection, connection.DstLabel.Label, position, size, size))
+		fmt.Fprint(writer, renderArrowheadLabel(connection, connection.DstLabel.Label, false, arrowheadWidth, arrowheadHeight, float64(connection.DstLabel.LabelWidth), float64(connection.DstLabel.LabelHeight)))
 	}
 	fmt.Fprintf(writer, `</g>`)
 	return
 }
 
-func renderArrowheadLabel(connection d2target.Connection, text string, position, width, height float64) string {
-	labelTL := label.UnlockedTop.GetPointOnRoute(connection.Route, float64(connection.StrokeWidth), position, width, height)
+func renderArrowheadLabel(connection d2target.Connection, text string, isSrc bool, arrowheadWidth, arrowheadHeight, labelWidth, labelHeight float64) string {
+	length := geo.Route(connection.Route).Length()
+	pos := 1. - (((labelHeight / 2) + 5) / length)
+	if isSrc {
+		pos = ((labelHeight / 2) + 5) / length
+	}
+	labelTL := label.UnlockedTop.GetPointOnRoute(connection.Route, float64(connection.StrokeWidth), pos, labelWidth, labelHeight)
 
 	textEl := d2themes.NewThemableElement("text")
-	textEl.X = labelTL.X + width/2
-	textEl.Y = labelTL.Y + float64(connection.FontSize)
+	textEl.X = labelTL.X + arrowheadWidth/2
+	textEl.Y = labelTL.Y + labelHeight/2
 	textEl.Fill = d2target.FG_COLOR
 	textEl.ClassName = "text-italic"
-	textEl.Style = fmt.Sprintf("text-anchor:%s;font-size:%vpx", "middle", connection.FontSize)
-	textEl.Content = RenderText(text, textEl.X, height)
+	textAnchor := "start"
+	textEl.Style = fmt.Sprintf("text-anchor:%s;font-size:%vpx", textAnchor, connection.FontSize)
+	textEl.Content = RenderText(text, textEl.X, labelHeight)
 	return textEl.Render()
 }
 

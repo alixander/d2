@@ -22,7 +22,7 @@ func testStable(t *testing.T) {
 
 					json: jsonb  {constraint: unique}
 					last_updated: timestamp with time zone
-					
+
 					style: {
 						fill: red
 						border-radius: 10
@@ -34,7 +34,7 @@ func testStable(t *testing.T) {
 
 					field: "[]string"
 					method(a uint64): (x, y int)
-					
+
 					style: {
 						border-radius: 10
 					}
@@ -1053,12 +1053,22 @@ a -> b
 		},
 		{
 			name: "arrowhead_labels",
-			script: `
-a -> b: To err is human, to moo bovine {
+			script: `a -> b: To err is human, to moo bovine {
 	source-arrowhead: 1
 	target-arrowhead: * {
 		shape: diamond
 	}
+}
+
+a -> c: {
+	source-arrowhead: {
+		label: 1..n
+	}
+	target-arrowhead: What is love
+}
+a -> d: {
+	source-arrowhead: Dreams are free
+	target-arrowhead: When does late\nbecome never?
 }
 `,
 		},
