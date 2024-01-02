@@ -391,6 +391,10 @@ func _set(g *d2graph.Graph, baseAST *d2ast.Map, key string, tag, value *string) 
 						maybeNewScope = ref.MapKey.Value.Map
 					}
 				}
+			} else if IsImported(g, obj) {
+				println("\033[1;31m--- DEBUG:", "=======================", "\033[m")
+				appendMapKey(scope, mk)
+				return nil
 			} else {
 				maybeNewScope = obj.Map
 			}
@@ -441,6 +445,7 @@ func _set(g *d2graph.Graph, baseAST *d2ast.Map, key string, tag, value *string) 
 			objK.Value = d2ast.MakeValueBox(m2)
 			scope = m2
 
+			// TODO this is skipping too much. need to look at the scope
 			mk.Key.Path = mk.Key.Path[toSkip-1:]
 			toSkip = 1
 			if len(mk.Key.Path) == 0 {
