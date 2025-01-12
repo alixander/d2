@@ -20,6 +20,7 @@
   "module": "./dist/esm/index.js",
   "exports": {
     ".": {
+      "browser": "./dist/browser/index.js",
       "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js"
     }
