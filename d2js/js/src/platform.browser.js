@@ -14,7 +14,10 @@ export async function loadFile(path) {
   return null;
 }
 
-export async function createWorker() {
+export async function createWorker(options = {}) {
+  if (options.workerUrl) {
+    return new Worker(options.workerUrl, { type: "module" });
+  }
   let blob = new Blob([wasmExecJs, elkScript, workerScript], {
     type: "text/javascript;charset=utf-8",
   });

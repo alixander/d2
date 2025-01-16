@@ -53,7 +53,7 @@ async function buildAndCopy(buildType) {
       format: "esm",
       target: "browser",
       platform: "browser",
-      entrypoints: [resolve(SRC_DIR, "index.js")],
+      entrypoints: [resolve(SRC_DIR, "index.js"), resolve(SRC_DIR, "worker.js")],
     },
     "node-esm": {
       outdir: resolve(ROOT_DIR, "dist/node-esm"),
