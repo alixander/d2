@@ -182,11 +182,11 @@
       "id": "Office chatter.awkward small talk",
       "type": "rectangle",
       "pos": {
-        "x": 22,
+        "x": 16,
         "y": 223
       },
-      "width": 351,
-      "height": 420,
+      "width": 363,
+      "height": 432,
       "opacity": 1,
       "strokeDash": 0,
       "strokeWidth": 0,
@@ -225,11 +225,11 @@
       "id": "Office chatter.awkward small talk.icebreaker attempt",
       "type": "rectangle",
       "pos": {
-        "x": 34,
+        "x": 28,
         "y": 434
       },
-      "width": 327,
-      "height": 76,
+      "width": 339,
+      "height": 209,
       "opacity": 1,
       "strokeDash": 0,
       "strokeWidth": 0,
@@ -268,11 +268,11 @@
       "id": "Office chatter.awkward small talk.unfortunate outcome",
       "type": "rectangle",
       "pos": {
-        "x": 40,
-        "y": 555
+        "x": 28,
+        "y": 553
       },
-      "width": 315,
-      "height": 76,
+      "width": 339,
+      "height": 91,
       "opacity": 1,
       "strokeDash": 0,
       "strokeWidth": 0,

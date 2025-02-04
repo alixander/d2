@@ -759,3 +759,11 @@ b: {
 
 a.b -> b.c
 b.c -> a.a: {style.font-color: red; style.stroke: red; style.fill: mistyrose}
+
+-- sequence-group-span --
+shape: sequence_diagram
+a
+b
+group: {
+  a.t -> b.t
+}

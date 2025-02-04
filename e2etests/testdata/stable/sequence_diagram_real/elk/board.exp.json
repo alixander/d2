@@ -478,10 +478,10 @@
       "type": "rectangle",
       "pos": {
         "x": 622,
-        "y": 732
+        "y": 763
       },
       "width": 12,
-      "height": 321,
+      "height": 290,
       "opacity": 1,
       "strokeDash": 0,
       "strokeWidth": 2,
@@ -518,11 +518,11 @@
       "id": "How this is rendered.only if root is not sequence",
       "type": "rectangle",
       "pos": {
-        "x": 594,
-        "y": 899
+        "x": 582,
+        "y": 717
       },
-      "width": 944,
-      "height": 76,
+      "width": 956,
+      "height": 351,
       "opacity": 1,
       "strokeDash": 0,
       "strokeWidth": 0,
@@ -783,11 +783,11 @@
       "route": [
         {
           "x": 74,
-          "y": 742
+          "y": 773
         },
         {
           "x": 622.5,
-          "y": 742
+          "y": 773
         }
       ],
       "animated": false,
@@ -822,11 +822,11 @@
       "route": [
         {
           "x": 634.5,
-          "y": 832
+          "y": 863
         },
         {
           "x": 1302.5,
-          "y": 832
+          "y": 863
         }
       ],
       "animated": false,

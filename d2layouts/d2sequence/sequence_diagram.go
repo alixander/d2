@@ -257,6 +257,15 @@ func (sd *sequenceDiagram) placeGroup(group *d2graph.Object) {
 			}
 		}
 	}
+	for _, span := range sd.spans {
+		spanActor := span.Parent
+		if spanActor.ContainedBy(group) {
+			minX = math.Min(minX, span.TopLeft.X-HORIZONTAL_PAD)
+			minY = math.Min(minY, span.TopLeft.Y-MIN_MESSAGE_DISTANCE/2.)
+			maxX = math.Max(maxX, span.TopLeft.X+span.Width+HORIZONTAL_PAD)
+			maxY = math.Max(maxY, span.TopLeft.Y+span.Height+MIN_MESSAGE_DISTANCE/2.)
+		}
+	}
 	// Groups should horizontally encompass all notes of the actor
 	for _, n := range sd.notes {
 		inGroup := false
