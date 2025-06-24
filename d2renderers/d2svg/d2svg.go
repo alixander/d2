@@ -109,7 +109,7 @@ func dimensions(diagram *d2target.Diagram, pad int) (left, top, width, height in
 	return left, top, width, height
 }
 
-func renderLegend(buf *bytes.Buffer, diagram *d2target.Diagram, diagramHash string, theme *d2themes.Theme) error {
+func RenderLegend(buf *bytes.Buffer, diagram *d2target.Diagram, diagramHash string, theme *d2themes.Theme) error {
 	if diagram.Legend == nil || (len(diagram.Legend.Shapes) == 0 && len(diagram.Legend.Connections) == 0) {
 		return nil
 	}
@@ -553,6 +553,51 @@ func arrowheadMarker(isTarget bool, id string, connection d2target.Connection, i
 		}
 
 		path = circleEl.Render()
+	case d2target.CrossArrowhead:
+		inset := strokeWidth / 8
+		rotationAngle := math.Pi / 4
+		origin := geo.NewPoint(width/2, height/2)
+		newOrigin := geo.NewPoint(math.Cos(rotationAngle)*origin.X-math.Sin(rotationAngle)*origin.Y, math.Sin(rotationAngle)*origin.X+math.Cos(rotationAngle)*origin.Y)
+
+		crossEl := d2themes.NewThemableElement("polygon", inlineTheme)
+		crossEl.Points = fmt.Sprintf("%f,%f %f,%f %f,%f %f,%f, %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f",
+			0., height/2+inset,
+			width/2-inset, height/2+inset,
+			width/2-inset, height,
+			width/2+inset, height,
+			width/2+inset, height/2+inset,
+			width, height/2+inset,
+			width, height/2-inset,
+			width/2+inset, height/2-inset,
+			width/2+inset, 0.,
+			width/2-inset, 0.,
+			width/2-inset, height/2-inset,
+			0., height/2-inset,
+		)
+		crossEl.Transform = fmt.Sprintf("translate(%f, %f) rotate(45)", -newOrigin.X+width/2, -newOrigin.Y+height/2)
+
+		childPathEl := d2themes.NewThemableElement("path", inlineTheme)
+		if isTarget {
+			childPathEl.D = fmt.Sprintf("M%f,%f %f,%f",
+				width/2, height/2,
+				width, height/2,
+			)
+		} else {
+			childPathEl.D = fmt.Sprintf("M%f,%f %f,%f",
+				width/2, height/2,
+				0., height/2,
+			)
+		}
+
+		gEl := d2themes.NewThemableElement("g", inlineTheme)
+		gEl.Fill = d2target.BG_COLOR
+		gEl.Stroke = connection.Stroke
+		gEl.ClassName = "connection"
+		gEl.Attributes = fmt.Sprintf(`stroke-width="%d"`, connection.StrokeWidth)
+		gEl.Content = fmt.Sprintf("%s%s",
+			crossEl.Render(), childPathEl.Render(),
+		)
+		path = gEl.Render()
 	case d2target.FilledBoxArrowhead:
 		polygonEl := d2themes.NewThemableElement("polygon", inlineTheme)
 		polygonEl.ClassName = "connection"
@@ -2407,7 +2452,7 @@ func Render(diagram *d2target.Diagram, opts *RenderOpts) ([]byte, error) {
 
 	if diagram.Legend != nil && (len(diagram.Legend.Shapes) > 0 || len(diagram.Legend.Connections) > 0) {
 		legendBuf := &bytes.Buffer{}
-		err := renderLegend(legendBuf, diagram, diagramHash, inlineTheme)
+		err := RenderLegend(legendBuf, diagram, diagramHash, inlineTheme)
 		if err != nil {
 			return nil, err
 		}
