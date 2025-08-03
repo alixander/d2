@@ -60,6 +60,9 @@ func Layout(g *Graph, opts LayoutOptions) error {
 	// Phase 4: Assign positions to nodes
 	assignPositions(g)
 	
+	// Phase 4.5: Adjust container sizes and positions
+	adjustContainerSizes(g)
+	
 	// Phase 5: Route edges
 	routeEdges(g)
 	
@@ -266,6 +269,8 @@ func assignPositions(g *Graph) {
 
 // routeEdges creates edge paths
 func routeEdges(g *Graph) {
+	rankDir := g.GetGraph("rankdir").(string)
+	
 	for _, edge := range g.Edges() {
 		src := g.GetNode(edge.V)
 		dst := g.GetNode(edge.W)
@@ -274,22 +279,93 @@ func routeEdges(g *Graph) {
 			continue
 		}
 		
-		// Simple straight line routing for now
-		edge.Points = []Point{
-			{X: src.X, Y: src.Y},
-			{X: dst.X, Y: dst.Y},
+		// Create multi-point routes for edges between different ranks
+		if src.Rank != dst.Rank {
+			// For edges spanning multiple ranks, create intermediate points
+			points := []Point{}
+			
+			// Start from source center
+			startX, startY := src.X, src.Y
+			endX, endY := dst.X, dst.Y
+			
+			// Add start point
+			points = append(points, Point{X: startX, Y: startY})
+			
+			// For vertical layouts (TB/BT), route edges with intermediate points
+			if rankDir == "TB" || rankDir == "BT" {
+				
+				if src.Rank < dst.Rank {
+					// Going down - add intermediate points
+					// Exit source at bottom
+					exitY := startY + src.Height/2 + 10
+					// Enter destination at top  
+					enterY := endY - dst.Height/2 - 10
+					// Mid point between shapes
+					midY := (exitY + enterY) / 2
+					
+					points = append(points, Point{X: startX, Y: exitY})
+					points = append(points, Point{X: startX, Y: midY})
+					points = append(points, Point{X: endX, Y: midY})
+					points = append(points, Point{X: endX, Y: enterY})
+				} else {
+					// Going up - add intermediate points  
+					exitY := startY - src.Height/2 - 10
+					enterY := endY + dst.Height/2 + 10
+					midY := (exitY + enterY) / 2
+					
+					points = append(points, Point{X: startX, Y: exitY})
+					points = append(points, Point{X: startX, Y: midY})
+					points = append(points, Point{X: endX, Y: midY})
+					points = append(points, Point{X: endX, Y: enterY})
+				}
+			} else {
+				// Horizontal layouts (LR/RL)
+				if src.Rank < dst.Rank {
+					// Going right - add intermediate points
+					exitX := startX + src.Width/2 + 10
+					enterX := endX - dst.Width/2 - 10
+					midX := (exitX + enterX) / 2
+					
+					points = append(points, Point{X: exitX, Y: startY})
+					points = append(points, Point{X: midX, Y: startY})
+					points = append(points, Point{X: midX, Y: endY})
+					points = append(points, Point{X: enterX, Y: endY})
+				} else {
+					// Going left - add intermediate points
+					exitX := startX - src.Width/2 - 10
+					enterX := endX + dst.Width/2 + 10
+					midX := (exitX + enterX) / 2
+					
+					points = append(points, Point{X: exitX, Y: startY})
+					points = append(points, Point{X: midX, Y: startY})
+					points = append(points, Point{X: midX, Y: endY})
+					points = append(points, Point{X: enterX, Y: endY})
+				}
+			}
+			
+			// Add end point
+			points = append(points, Point{X: endX, Y: endY})
+			
+			edge.Points = points
+		} else {
+			// Same rank - simple direct connection
+			edge.Points = []Point{
+				{X: src.X, Y: src.Y},
+				{X: dst.X, Y: dst.Y},
+			}
 		}
 		
 		// Set label position at midpoint
 		edge.X = (src.X + dst.X) / 2
 		edge.Y = (src.Y + dst.Y) / 2
 	}
-	
-	// TODO: Implement proper edge routing with splines
 }
 
 // calculateGraphDimensions calculates the overall graph dimensions
 func calculateGraphDimensions(g *Graph) {
+	// First, adjust container sizes to fit their children
+	adjustContainerSizes(g)
+	
 	minX, minY := math.Inf(1), math.Inf(1)
 	maxX, maxY := math.Inf(-1), math.Inf(-1)
 	
@@ -301,8 +377,95 @@ func calculateGraphDimensions(g *Graph) {
 		maxY = math.Max(maxY, node.Y+node.Height/2)
 	}
 	
+	// Translate graph so all coordinates are positive
+	if minX < 0 || minY < 0 {
+		padding := 10.0
+		dx := -minX + padding
+		dy := -minY + padding
+		
+		// Translate all nodes
+		for _, id := range g.Nodes() {
+			node := g.GetNode(id)
+			node.X += dx
+			node.Y += dy
+		}
+		
+		// Translate all edge points
+		for _, edge := range g.Edges() {
+			for _, p := range edge.Points {
+				p.X += dx
+				p.Y += dy
+			}
+			edge.X += dx
+			edge.Y += dy
+		}
+		
+		// Update bounds
+		maxX += dx
+		maxY += dy
+		minX = padding
+		minY = padding
+	}
+	
 	g.SetGraph(map[string]interface{}{
 		"width":  maxX - minX,
 		"height": maxY - minY,
 	})
+}
+
+// adjustContainerSizes adjusts container node sizes to fit their children
+func adjustContainerSizes(g *Graph) {
+	if !g.compound {
+		return
+	}
+	
+	// Process nodes in reverse topological order (children before parents)
+	// Build a list of all parent nodes
+	parents := make(map[string]bool)
+	for child := range g.parent {
+		if parent := g.parent[child]; parent != "" {
+			parents[parent] = true
+		}
+	}
+	
+	// For each parent, calculate bounding box of children
+	for parentID := range parents {
+		parent := g.GetNode(parentID)
+		if parent == nil {
+			continue
+		}
+		
+		minX, minY := math.Inf(1), math.Inf(1)
+		maxX, maxY := math.Inf(-1), math.Inf(-1)
+		hasChildren := false
+		
+		// Find bounds of all children
+		for childID, p := range g.parent {
+			if p == parentID {
+				child := g.GetNode(childID)
+				if child != nil {
+					hasChildren = true
+					minX = math.Min(minX, child.X-child.Width/2)
+					maxX = math.Max(maxX, child.X+child.Width/2)
+					minY = math.Min(minY, child.Y-child.Height/2)
+					maxY = math.Max(maxY, child.Y+child.Height/2)
+				}
+			}
+		}
+		
+		if hasChildren {
+			// Add padding
+			padding := 30.0
+			minX -= padding
+			minY -= padding
+			maxX += padding
+			maxY += padding
+			
+			// Update parent size and position
+			parent.X = (minX + maxX) / 2
+			parent.Y = (minY + maxY) / 2
+			parent.Width = maxX - minX
+			parent.Height = maxY - minY
+		}
+	}
 }
