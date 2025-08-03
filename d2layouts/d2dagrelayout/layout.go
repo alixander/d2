@@ -2,33 +2,21 @@ package d2dagrelayout
 
 import (
 	"context"
-	_ "embed"
-	"encoding/json"
-	"fmt"
 	"math"
 	"sort"
 	"strings"
-
-	"log/slog"
 
 	"oss.terrastruct.com/util-go/xdefer"
 
 	"oss.terrastruct.com/util-go/go2"
 
 	"oss.terrastruct.com/d2/d2graph"
+	"oss.terrastruct.com/d2/d2layouts/d2dagrelayout/godagre"
 	"oss.terrastruct.com/d2/d2target"
 	"oss.terrastruct.com/d2/lib/geo"
-	"oss.terrastruct.com/d2/lib/jsrunner"
 	"oss.terrastruct.com/d2/lib/label"
-	"oss.terrastruct.com/d2/lib/log"
 	"oss.terrastruct.com/d2/lib/shape"
 )
-
-//go:embed setup.js
-var setupJS string
-
-//go:embed dagre.js
-var dagreJS string
 
 const (
 	MIN_RANK_SEP    = 60
@@ -47,27 +35,6 @@ var DefaultOpts = ConfigurableOpts{
 	EdgeSep: 20,
 }
 
-type DagreNode struct {
-	ID     string  `json:"id"`
-	X      float64 `json:"x"`
-	Y      float64 `json:"y"`
-	Width  float64 `json:"width"`
-	Height float64 `json:"height"`
-}
-
-type DagreEdge struct {
-	Points []*geo.Point `json:"points"`
-}
-
-type dagreOpts struct {
-	// for a top to bottom graph: ranksep is y spacing, nodesep is x spacing, edgesep is x spacing
-	ranksep int
-	// graph direction: tb (top to bottom)| bt | lr | rl
-	rankdir string
-
-	ConfigurableOpts
-}
-
 func DefaultLayout(ctx context.Context, g *d2graph.Graph) (err error) {
 	return Layout(ctx, g, nil)
 }
@@ -78,42 +45,41 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 	}
 	defer xdefer.Errorf(&err, "failed to dagre layout")
 
-	debugJS := false
-	runner := jsrunner.NewJSRunner()
-	if _, err := runner.RunString(dagreJS); err != nil {
-		return err
-	}
-	if _, err := runner.RunString(setupJS); err != nil {
-		return err
-	}
+	// Create godagre graph
+	dagreGraph := godagre.NewGraph(godagre.GraphOptions{
+		Compound:   true,
+		Multigraph: true,
+		Directed:   true,
+	})
 
-	rootAttrs := dagreOpts{
-		ConfigurableOpts: ConfigurableOpts{
-			EdgeSep: opts.EdgeSep,
-			NodeSep: opts.NodeSep,
-		},
-	}
+	// Configure layout options
+	layoutOpts := godagre.DefaultLayoutOptions()
+	layoutOpts.NodeSep = float64(opts.NodeSep)
+	layoutOpts.EdgeSep = float64(opts.EdgeSep)
+
+	// Set rank direction based on graph direction
 	isHorizontal := false
 	switch g.Root.Direction.Value {
 	case "down":
-		rootAttrs.rankdir = "TB"
+		layoutOpts.RankDir = "TB"
 	case "right":
-		rootAttrs.rankdir = "LR"
+		layoutOpts.RankDir = "LR"
 		isHorizontal = true
 	case "left":
-		rootAttrs.rankdir = "RL"
+		layoutOpts.RankDir = "RL"
 		isHorizontal = true
 	case "up":
-		rootAttrs.rankdir = "BT"
+		layoutOpts.RankDir = "BT"
 	default:
-		rootAttrs.rankdir = "TB"
+		layoutOpts.RankDir = "TB"
 	}
 
-	// set label and icon positions for dagre
+	// Set label and icon positions for dagre
 	for _, obj := range g.Objects {
 		positionLabelsIcons(obj)
 	}
 
+	// Calculate rank separation based on edge labels
 	maxLabelWidth := 0
 	maxLabelHeight := 0
 	for _, edge := range g.Edges {
@@ -124,39 +90,36 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 	}
 
 	if !isHorizontal {
-		rootAttrs.ranksep = go2.Max(100, maxLabelHeight+40)
+		layoutOpts.RankSep = float64(go2.Max(100, maxLabelHeight+40))
 	} else {
-		rootAttrs.ranksep = go2.Max(100, maxLabelWidth+40)
-		// use existing config
-		// rootAttrs.NodeSep = rootAttrs.EdgeSep
-		// // configure vertical padding
-		// rootAttrs.EdgeSep = maxLabelHeight + 40
-		// Note: non-containers have both of these as padding (rootAttrs.NodeSep + rootAttrs.EdgeSep)
+		layoutOpts.RankSep = float64(go2.Max(100, maxLabelWidth+40))
 	}
 
-	configJS := setGraphAttrs(rootAttrs)
-	if _, err := runner.RunString(configJS); err != nil {
-		return err
-	}
-
+	// Add nodes to dagre graph
 	mapper := NewObjectMapper()
 	for _, obj := range g.Objects {
 		mapper.Register(obj)
-	}
-	loadScript := ""
-	for _, obj := range g.Objects {
-		loadScript += mapper.generateAddNodeLine(obj, int(obj.Width), int(obj.Height))
+		
+		nodeAttrs := map[string]interface{}{
+			"width":  obj.Width,
+			"height": obj.Height,
+		}
+		dagreGraph.SetNode(mapper.ToID(obj), nodeAttrs)
+		
+		// Set parent relationships
 		if obj.Parent != g.Root {
-			loadScript += mapper.generateAddParentLine(obj, obj.Parent)
+			dagreGraph.SetParent(mapper.ToID(obj), mapper.ToID(obj.Parent))
 		}
 	}
 
+	// Add edges to dagre graph
 	for _, edge := range g.Edges {
 		src, dst := getEdgeEndpoints(g, edge)
 
 		width := edge.LabelDimensions.Width
 		height := edge.LabelDimensions.Height
 
+		// Count parallel edges
 		numEdges := 0
 		for _, e := range g.Edges {
 			otherSrc, otherDst := getEdgeEndpoints(g, e)
@@ -165,7 +128,7 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 			}
 		}
 
-		// We want to leave some gap between multiple edges
+		// Add gap for multiple edges
 		if numEdges > 1 {
 			switch g.Root.Direction.Value {
 			case "down", "up", "":
@@ -175,71 +138,53 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 			}
 		}
 
-		loadScript += mapper.generateAddEdgeLine(src, dst, edge.AbsID(), width, height)
+		edgeAttrs := map[string]interface{}{
+			"width":  width,
+			"height": height,
+		}
+		dagreGraph.SetEdge(mapper.ToID(src), mapper.ToID(dst), edgeAttrs, edge.AbsID())
 	}
 
-	if debugJS {
-		log.Debug(ctx, "script", slog.Any("all", setupJS+configJS+loadScript))
-	}
-
-	if _, err := runner.RunString(loadScript); err != nil {
+	// Run the layout algorithm
+	if err := godagre.Layout(dagreGraph, layoutOpts); err != nil {
 		return err
 	}
 
-	if _, err := runner.RunString(`dagre.layout(g)`); err != nil {
-		if debugJS {
-			log.Warn(ctx, "layout error", slog.Any("err", err))
-		}
-		return err
+	// Extract node positions from dagre
+	for _, id := range dagreGraph.Nodes() {
+		node := dagreGraph.GetNode(id)
+		obj := mapper.ToObj(id)
+		
+		// dagre gives center of node, convert to top-left
+		obj.TopLeft = geo.NewPoint(math.Round(node.X-node.Width/2), math.Round(node.Y-node.Height/2))
+		obj.Width = math.Ceil(node.Width)
+		obj.Height = math.Ceil(node.Height)
 	}
 
-	for i := range g.Objects {
-		val, err := runner.RunString(fmt.Sprintf("JSON.stringify(g.node(g.nodes()[%d]))", i))
-		if err != nil {
-			return err
-		}
-		var dn DagreNode
-		if err := json.Unmarshal([]byte(val.String()), &dn); err != nil {
-			return err
-		}
-		if debugJS {
-			log.Debug(ctx, "graph", slog.Any("json", dn))
+	// Extract edge routes from dagre
+	for _, edge := range g.Edges {
+		src, dst := getEdgeEndpoints(g, edge)
+		dagreEdge := dagreGraph.GetEdge(mapper.ToID(src), mapper.ToID(dst), edge.AbsID())
+		
+		if dagreEdge == nil {
+			continue
 		}
 
-		obj := mapper.ToObj(dn.ID)
-
-		// dagre gives center of node
-		obj.TopLeft = geo.NewPoint(math.Round(dn.X-dn.Width/2), math.Round(dn.Y-dn.Height/2))
-		obj.Width = math.Ceil(dn.Width)
-		obj.Height = math.Ceil(dn.Height)
-	}
-
-	for i, edge := range g.Edges {
-		val, err := runner.RunString(fmt.Sprintf("JSON.stringify(g.edge(g.edges()[%d]))", i))
-		if err != nil {
-			return err
-		}
-		var de DagreEdge
-		if err := json.Unmarshal([]byte(val.String()), &de); err != nil {
-			return err
-		}
-		if debugJS {
-			log.Debug(ctx, "graph", slog.Any("json", de))
-		}
-
-		points := make([]*geo.Point, len(de.Points))
-		for i := range de.Points {
+		// Convert dagre points to geo points
+		points := make([]*geo.Point, len(dagreEdge.Points))
+		for i, p := range dagreEdge.Points {
 			if edge.SrcArrow && !edge.DstArrow {
-				points[len(de.Points)-i-1] = de.Points[i].Copy()
+				points[len(dagreEdge.Points)-i-1] = geo.NewPoint(p.X, p.Y)
 			} else {
-				points[i] = de.Points[i].Copy()
+				points[i] = geo.NewPoint(p.X, p.Y)
 			}
 		}
 
+		// Process edge route similar to original implementation
 		startIndex, endIndex := 0, len(points)-1
 		start, end := points[startIndex], points[endIndex]
 
-		// chop where edge crosses the source/target boxes since container edges were routed to a descendant
+		// Chop where edge crosses the source/target boxes for container edges
 		if edge.Src != edge.Dst {
 			for i := 1; i < len(points); i++ {
 				segment := *geo.NewSegment(points[i-1], points[i])
@@ -262,26 +207,24 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 		edge.Route = points
 	}
 
-	adjustRankSpacing(g, float64(rootAttrs.ranksep), isHorizontal)
-	adjustCrossRankSpacing(g, float64(rootAttrs.ranksep), !isHorizontal)
-	fitContainerPadding(g, float64(rootAttrs.ranksep), isHorizontal)
+	// Apply post-processing adjustments
+	adjustRankSpacing(g, layoutOpts.RankSep, isHorizontal)
+	adjustCrossRankSpacing(g, layoutOpts.RankSep, !isHorizontal)
+	fitContainerPadding(g, layoutOpts.RankSep, isHorizontal)
 
+	// Process edge curves and finalize routes
 	for _, edge := range g.Edges {
 		points := edge.Route
 		startIndex, endIndex := 0, len(points)-1
 		start, end := points[startIndex], points[endIndex]
 
-		// arrowheads can appear broken if segments are very short from dagre routing a point just outside the shape
-		// to fix this, we try extending the previous segment into the shape instead of having a very short segment
+		// Handle short segments near shapes
 		if startIndex+2 < len(points) {
 			newStartingSegment := *geo.NewSegment(start, points[startIndex+1])
 			if newStartingSegment.Length() < d2graph.MIN_SEGMENT_LEN {
-				// we don't want a very short segment right next to the source because it will mess up the arrowhead
-				// instead we want to extend the next segment into the shape border if possible
 				nextStart := points[startIndex+1]
 				nextEnd := points[startIndex+2]
 
-				// Note: in other direction to extend towards source
 				nextSegment := *geo.NewSegment(nextStart, nextEnd)
 				v := nextSegment.ToVector()
 				extendedStart := nextEnd.ToVector().Add(v.AddLength(d2graph.MIN_SEGMENT_LEN)).ToPoint()
@@ -297,7 +240,6 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 		if endIndex-2 >= 0 {
 			newEndingSegment := *geo.NewSegment(end, points[endIndex-1])
 			if newEndingSegment.Length() < d2graph.MIN_SEGMENT_LEN {
-				// extend the prev segment into the shape border if possible
 				prevStart := points[endIndex-2]
 				prevEnd := points[endIndex-1]
 
@@ -314,8 +256,8 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 			}
 		}
 
+		// Handle 3d/multiple modifiers
 		var originalSrcTL, originalDstTL *geo.Point
-		// if the edge passes through 3d/multiple, use the offset box for tracing to border
 		if srcDx, srcDy := edge.Src.GetModifierElementAdjustments(); srcDx != 0 || srcDy != 0 {
 			if start.X > edge.Src.TopLeft.X+srcDx &&
 				start.Y < edge.Src.TopLeft.Y+edge.Src.Height-srcDy {
@@ -336,7 +278,7 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 		startIndex, endIndex = edge.TraceToShape(points, startIndex, endIndex)
 		points = points[startIndex : endIndex+1]
 
-		// build a curved path from the dagre route
+		// Build curved path
 		vectors := make([]geo.Vector, 0, len(points)-1)
 		for i := 1; i < len(points); i++ {
 			vectors = append(vectors, points[i-1].VectorTo(points[i]))
@@ -359,12 +301,11 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 		path = append(path, points[len(points)-1])
 
 		edge.Route = path
-		// compile needs to assign edge label positions
 		if edge.Label.Value != "" {
 			edge.LabelPosition = go2.Pointer(label.InsideMiddleCenter.String())
 		}
 
-		// undo 3d/multiple offset
+		// Restore 3d/multiple offsets
 		if originalSrcTL != nil {
 			edge.Src.TopLeft.X = originalSrcTL.X
 			edge.Src.TopLeft.Y = originalSrcTL.Y
@@ -395,21 +336,6 @@ func getEdgeEndpoints(g *d2graph.Graph, edge *d2graph.Edge) (*d2graph.Object, *d
 		src, dst = dst, src
 	}
 	return src, dst
-}
-
-func setGraphAttrs(attrs dagreOpts) string {
-	return fmt.Sprintf(`g.setGraph({
-  ranksep: %d,
-  edgesep: %d,
-  nodesep: %d,
-  rankdir: "%s",
-});
-`,
-		attrs.ranksep,
-		attrs.ConfigurableOpts.EdgeSep,
-		attrs.ConfigurableOpts.NodeSep,
-		attrs.rankdir,
-	)
 }
 
 // getLongestEdgeChainHead finds the longest chain in a container and gets its head
