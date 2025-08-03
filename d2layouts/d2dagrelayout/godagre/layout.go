@@ -48,23 +48,34 @@ func Layout(g *Graph, opts LayoutOptions) error {
 		"acyclicer": opts.Acyclicer,
 	})
 	
+	// Pre-process compound graphs if needed
+	if g.compound {
+		// Adjust container dimensions before layout
+		adjustContainerDimensions(g)
+	}
+	
 	// Phase 1: Make the graph acyclic by reversing edges
 	reversedEdges := makeAcyclic(g)
 	
-	// Phase 2: Assign ranks (vertical levels) to nodes
-	assignRanks(g)
+	// Phase 2: Assign ranks using network simplex
+	switch opts.Ranker {
+	case "network-simplex":
+		networkSimplex(g)
+	case "longest-path":
+		longestPathRanking(g)
+	default:
+		networkSimplex(g)
+	}
 	
 	// Phase 3: Order nodes within ranks to minimize crossings
-	orderNodes(g)
+	order(g)
 	
 	// Phase 4: Assign positions to nodes
-	assignPositions(g)
-	
-	// Phase 4.5: Adjust container sizes and positions
-	adjustContainerSizes(g)
+	position(g)
 	
 	// Phase 5: Route edges
-	routeEdges(g)
+	edgeRouter := newEdgeRouter(g)
+	edgeRouter.routeAllEdges()
 	
 	// Restore reversed edges
 	for _, e := range reversedEdges {
@@ -74,6 +85,11 @@ func Layout(g *Graph, opts LayoutOptions) error {
 		for i, j := 0, len(e.Points)-1; i < j; i, j = i+1, j-1 {
 			e.Points[i], e.Points[j] = e.Points[j], e.Points[i]
 		}
+	}
+	
+	// Post-process compound graphs
+	if g.compound {
+		postProcessCompoundGraph(g)
 	}
 	
 	// Calculate graph dimensions
@@ -119,8 +135,8 @@ func makeAcyclic(g *Graph) []*Edge {
 	return reversedEdges
 }
 
-// assignRanks assigns vertical levels to nodes
-func assignRanks(g *Graph) {
+// longestPathRanking assigns ranks using longest path algorithm
+func longestPathRanking(g *Graph) {
 	// Simple longest path algorithm
 	rank := make(map[string]int)
 	
@@ -147,125 +163,12 @@ func assignRanks(g *Graph) {
 			node.Rank = r
 		}
 	}
+	
+	// Update rank bounds
+	updateRankBounds(g)
 }
 
-// orderNodes orders nodes within each rank to minimize edge crossings
-func orderNodes(g *Graph) {
-	// Group nodes by rank
-	ranks := make(map[int][]*Node)
-	maxRank := 0
-	
-	for _, id := range g.Nodes() {
-		node := g.GetNode(id)
-		if node.Rank > maxRank {
-			maxRank = node.Rank
-		}
-		ranks[node.Rank] = append(ranks[node.Rank], node)
-	}
-	
-	// Simple ordering: maintain relative order within each rank
-	for r := 0; r <= maxRank; r++ {
-		nodes := ranks[r]
-		for i, node := range nodes {
-			node.Order = i
-		}
-	}
-	
-	// TODO: Implement crossing minimization algorithm
-	// For now, we just use the initial order
-}
 
-// assignPositions assigns x,y coordinates to nodes
-func assignPositions(g *Graph) {
-	// Group nodes by rank
-	ranks := make(map[int][]*Node)
-	maxRank := 0
-	
-	for _, id := range g.Nodes() {
-		node := g.GetNode(id)
-		if node.Rank > maxRank {
-			maxRank = node.Rank
-		}
-		ranks[node.Rank] = append(ranks[node.Rank], node)
-	}
-	
-	nodeSep := g.GetGraph("nodesep").(float64)
-	rankSep := g.GetGraph("ranksep").(float64)
-	rankDir := g.GetGraph("rankdir").(string)
-	
-	// Assign positions based on rank and order
-	for r := 0; r <= maxRank; r++ {
-		nodes := ranks[r]
-		
-		// Sort by order
-		for i := 0; i < len(nodes)-1; i++ {
-			for j := i + 1; j < len(nodes); j++ {
-				if nodes[i].Order > nodes[j].Order {
-					nodes[i], nodes[j] = nodes[j], nodes[i]
-				}
-			}
-		}
-		
-		// Assign positions
-		x := 0.0
-		for _, node := range nodes {
-			switch rankDir {
-			case "TB", "BT":
-				node.X = x + node.Width/2
-				node.Y = float64(r)*rankSep + node.Height/2
-				x += node.Width + nodeSep
-			case "LR", "RL":
-				node.Y = x + node.Height/2
-				node.X = float64(r)*rankSep + node.Width/2
-				x += node.Height + nodeSep
-			}
-		}
-		
-		// Center the rank
-		if len(nodes) > 0 {
-			totalWidth := x - nodeSep
-			offset := -totalWidth / 2
-			for _, node := range nodes {
-				switch rankDir {
-				case "TB", "BT":
-					node.X += offset
-				case "LR", "RL":
-					node.Y += offset
-				}
-			}
-		}
-	}
-	
-	// Handle rank direction
-	switch rankDir {
-	case "BT":
-		// Bottom to top - flip Y coordinates
-		maxY := 0.0
-		for _, id := range g.Nodes() {
-			node := g.GetNode(id)
-			if node.Y > maxY {
-				maxY = node.Y
-			}
-		}
-		for _, id := range g.Nodes() {
-			node := g.GetNode(id)
-			node.Y = maxY - node.Y
-		}
-	case "RL":
-		// Right to left - flip X coordinates
-		maxX := 0.0
-		for _, id := range g.Nodes() {
-			node := g.GetNode(id)
-			if node.X > maxX {
-				maxX = node.X
-			}
-		}
-		for _, id := range g.Nodes() {
-			node := g.GetNode(id)
-			node.X = maxX - node.X
-		}
-	}
-}
 
 // routeEdges creates edge paths
 func routeEdges(g *Graph) {
@@ -363,8 +266,6 @@ func routeEdges(g *Graph) {
 
 // calculateGraphDimensions calculates the overall graph dimensions
 func calculateGraphDimensions(g *Graph) {
-	// First, adjust container sizes to fit their children
-	adjustContainerSizes(g)
 	
 	minX, minY := math.Inf(1), math.Inf(1)
 	maxX, maxY := math.Inf(-1), math.Inf(-1)
@@ -411,61 +312,4 @@ func calculateGraphDimensions(g *Graph) {
 		"width":  maxX - minX,
 		"height": maxY - minY,
 	})
-}
-
-// adjustContainerSizes adjusts container node sizes to fit their children
-func adjustContainerSizes(g *Graph) {
-	if !g.compound {
-		return
-	}
-	
-	// Process nodes in reverse topological order (children before parents)
-	// Build a list of all parent nodes
-	parents := make(map[string]bool)
-	for child := range g.parent {
-		if parent := g.parent[child]; parent != "" {
-			parents[parent] = true
-		}
-	}
-	
-	// For each parent, calculate bounding box of children
-	for parentID := range parents {
-		parent := g.GetNode(parentID)
-		if parent == nil {
-			continue
-		}
-		
-		minX, minY := math.Inf(1), math.Inf(1)
-		maxX, maxY := math.Inf(-1), math.Inf(-1)
-		hasChildren := false
-		
-		// Find bounds of all children
-		for childID, p := range g.parent {
-			if p == parentID {
-				child := g.GetNode(childID)
-				if child != nil {
-					hasChildren = true
-					minX = math.Min(minX, child.X-child.Width/2)
-					maxX = math.Max(maxX, child.X+child.Width/2)
-					minY = math.Min(minY, child.Y-child.Height/2)
-					maxY = math.Max(maxY, child.Y+child.Height/2)
-				}
-			}
-		}
-		
-		if hasChildren {
-			// Add padding
-			padding := 30.0
-			minX -= padding
-			minY -= padding
-			maxX += padding
-			maxY += padding
-			
-			// Update parent size and position
-			parent.X = (minX + maxX) / 2
-			parent.Y = (minY + maxY) / 2
-			parent.Width = maxX - minX
-			parent.Height = maxY - minY
-		}
-	}
 }

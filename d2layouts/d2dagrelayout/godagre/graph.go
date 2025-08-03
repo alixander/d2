@@ -23,6 +23,10 @@ type Graph struct {
 	// Parent-child relationships for compound graphs
 	parent   map[string]string
 	children map[string][]string
+	
+	// Algorithm state
+	maxRank int
+	minRank int
 }
 
 type Node struct {
@@ -33,6 +37,25 @@ type Node struct {
 	Y      float64
 	Rank   int
 	Order  int
+	
+	// For network simplex
+	Low      int
+	Lim      int
+	Parent   string
+	Cutvalue float64
+	
+	// For crossing minimization
+	In         []*Edge // incoming edges
+	Out        []*Edge // outgoing edges
+	Barycenter float64
+	Weight     float64
+	
+	// For coordinate assignment
+	Dummy     bool
+	BorderTop string
+	BorderBottom string
+	BorderLeft   []*Node
+	BorderRight  []*Node
 	
 	// Additional attributes
 	attrs map[string]interface{}
@@ -45,10 +68,21 @@ type Edge struct {
 	Width  float64
 	Height float64
 	
+	// Edge properties
+	Weight float64
+	Minlen int
+	
+	// For network simplex
+	Cutvalue float64
+	Tree     bool
+	Reversed bool
+	
 	// Layout properties
 	Points []Point
 	X      float64
 	Y      float64
+	LabelRank int
+	LabelOffset float64
 	
 	// Additional attributes
 	attrs map[string]interface{}
@@ -100,6 +134,8 @@ func (g *Graph) SetNode(id string, attrs map[string]interface{}) {
 	node := &Node{
 		ID:    id,
 		attrs: make(map[string]interface{}),
+		In:    make([]*Edge, 0),
+		Out:   make([]*Edge, 0),
 	}
 	
 	// Extract known attributes
