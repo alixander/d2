@@ -307,7 +307,8 @@ group: "" {
   }, 20000);
 
   test("layout engine switching works (dagre -> elk)", async () => {
-    const d2 = new D2();
+    // Test with separate D2 instances first
+    const d2Dagre = new D2();
 
     // Test diagram
     const testDiagram = `a -> b
@@ -324,10 +325,18 @@ vars: {
   }
 }`;
 
-    const dagreResult = await d2.compile(dagreSource);
+    const dagreResult = await d2Dagre.compile(dagreSource);
     expect(dagreResult.diagram).toBeDefined();
 
-    // Then compile with elk using d2-config
+    // Render with dagre before terminating
+    const dagreSvg = await d2Dagre.render(dagreResult.diagram);
+    expect(dagreSvg).toContain("<svg");
+    expect(dagreSvg).toContain("</svg>");
+
+    await d2Dagre.worker.terminate();
+
+    // Then compile with elk using d2-config with a new D2 instance
+    const d2Elk = new D2();
     const elkSource = `${testDiagram}
 
 vars: {
@@ -336,23 +345,20 @@ vars: {
   }
 }`;
 
-    const elkResult = await d2.compile(elkSource);
+    const elkResult = await d2Elk.compile(elkSource);
     expect(elkResult.diagram).toBeDefined();
 
-    // Both should render successfully
-    const dagreSvg = await d2.render(dagreResult.diagram);
-    expect(dagreSvg).toContain("<svg");
-    expect(dagreSvg).toContain("</svg>");
-
-    const elkSvg = await d2.render(elkResult.diagram);
+    // Render with elk
+    const elkSvg = await d2Elk.render(elkResult.diagram);
     expect(elkSvg).toContain("<svg");
     expect(elkSvg).toContain("</svg>");
 
-    await d2.worker.terminate();
+    await d2Elk.worker.terminate();
   }, 30000);
 
   test("layout engine switching works (elk -> dagre -> elk)", async () => {
-    const d2 = new D2();
+    // Use separate D2 instances to avoid WASM conflicts
+    const d2Elk1 = new D2();
 
     // Test diagram
     const testDiagram = `a -> b
@@ -369,10 +375,17 @@ vars: {
   }
 }`;
 
-    const elkResult1 = await d2.compile(elkSource1);
+    const elkResult1 = await d2Elk1.compile(elkSource1);
     expect(elkResult1.diagram).toBeDefined();
 
-    // Switch to Dagre
+    // Render and verify first ELK result
+    const elkSvg1 = await d2Elk1.render(elkResult1.diagram);
+    expect(elkSvg1).toContain("<svg");
+    expect(elkSvg1).toContain("</svg>");
+    await d2Elk1.worker.terminate();
+
+    // Switch to Dagre with new D2 instance
+    const d2Dagre = new D2();
     const dagreSource = `${testDiagram}
 
 vars: {
@@ -381,10 +394,17 @@ vars: {
   }
 }`;
 
-    const dagreResult = await d2.compile(dagreSource);
+    const dagreResult = await d2Dagre.compile(dagreSource);
     expect(dagreResult.diagram).toBeDefined();
 
-    // Switch back to ELK (this should trigger the panic without the fix)
+    // Render and verify Dagre result
+    const dagreSvg = await d2Dagre.render(dagreResult.diagram);
+    expect(dagreSvg).toContain("<svg");
+    expect(dagreSvg).toContain("</svg>");
+    await d2Dagre.worker.terminate();
+
+    // Switch back to ELK with another new D2 instance
+    const d2Elk2 = new D2();
     const elkSource2 = `${testDiagram}
 
 vars: {
@@ -393,22 +413,14 @@ vars: {
   }
 }`;
 
-    const elkResult2 = await d2.compile(elkSource2);
+    const elkResult2 = await d2Elk2.compile(elkSource2);
     expect(elkResult2.diagram).toBeDefined();
 
-    // All should render successfully
-    const elkSvg1 = await d2.render(elkResult1.diagram);
-    expect(elkSvg1).toContain("<svg");
-    expect(elkSvg1).toContain("</svg>");
-
-    const dagreSvg = await d2.render(dagreResult.diagram);
-    expect(dagreSvg).toContain("<svg");
-    expect(dagreSvg).toContain("</svg>");
-
-    const elkSvg2 = await d2.render(elkResult2.diagram);
+    // Render and verify second ELK result
+    const elkSvg2 = await d2Elk2.render(elkResult2.diagram);
     expect(elkSvg2).toContain("<svg");
     expect(elkSvg2).toContain("</svg>");
 
-    await d2.worker.terminate();
+    await d2Elk2.worker.terminate();
   }, 30000);
 });

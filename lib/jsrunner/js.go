@@ -5,13 +5,7 @@ package jsrunner
 import (
 	"context"
 	"fmt"
-	"sync"
 	"syscall/js"
-)
-
-var (
-	instance JSRunner
-	once     sync.Once
 )
 
 type jsRunner struct {
@@ -23,10 +17,7 @@ type jsValue struct {
 }
 
 func NewJSRunner() JSRunner {
-	once.Do(func() {
-		instance = &jsRunner{global: js.Global()}
-	})
-	return instance
+	return &jsRunner{global: js.Global()}
 }
 
 func (j *jsRunner) Engine() Engine {
@@ -38,7 +29,6 @@ func (j *jsRunner) MustGet(key string) (JSValue, error) {
 	if result.IsUndefined() {
 		return nil, fmt.Errorf("key %q not found in global scope", key)
 	}
-	defer j.global.Set(key, js.Undefined())
 	return &jsValue{val: result}, nil
 }
 
