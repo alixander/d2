@@ -14,7 +14,6 @@ import (
 	"oss.terrastruct.com/d2/d2format"
 	"oss.terrastruct.com/d2/d2graph"
 	"oss.terrastruct.com/d2/d2layouts/d2dagrelayout"
-	"oss.terrastruct.com/d2/d2layouts/d2elklayout"
 	"oss.terrastruct.com/d2/d2lib"
 	"oss.terrastruct.com/d2/d2lsp"
 	"oss.terrastruct.com/d2/d2oracle"
@@ -111,57 +110,7 @@ func GetRefRanges(args []js.Value) (interface{}, error) {
 	}, nil
 }
 
-func GetELKGraph(args []js.Value) (interface{}, error) {
-	if len(args) < 1 {
-		return nil, &WASMError{Message: "missing JSON argument", Code: 400}
-	}
-	var input CompileRequest
-	if err := json.Unmarshal([]byte(args[0].String()), &input); err != nil {
-		return nil, &WASMError{Message: "invalid JSON input", Code: 400}
-	}
 
-	if input.FS == nil {
-		return nil, &WASMError{Message: "missing 'fs' field in input JSON", Code: 400}
-	}
-
-	inputPath := DEFAULT_INPUT_PATH
-
-	if input.InputPath != nil {
-		inputPath = *input.InputPath
-	}
-
-	if _, ok := input.FS[inputPath]; !ok {
-		return nil, &WASMError{Message: fmt.Sprintf("missing '%s' file in input fs", inputPath), Code: 400}
-	}
-
-	fs, err := memfs.New(input.FS)
-	if err != nil {
-		return nil, &WASMError{Message: fmt.Sprintf("invalid fs input: %s", err.Error()), Code: 400}
-	}
-
-	g, _, err := d2compiler.Compile(inputPath, strings.NewReader(input.FS[inputPath]), &d2compiler.CompileOptions{
-		UTF16Pos: true,
-		FS:       fs,
-	})
-	if err != nil {
-		return nil, &WASMError{Message: err.Error(), Code: 400}
-	}
-
-	ruler, err := textmeasure.NewRuler()
-	if err != nil {
-		return nil, &WASMError{Message: fmt.Sprintf("text ruler cannot be initialized: %s", err.Error()), Code: 500}
-	}
-	err = g.SetDimensions(nil, ruler, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	elk, err := d2elklayout.ConvertGraph(context.Background(), g, nil)
-	if err != nil {
-		return nil, &WASMError{Message: err.Error(), Code: 400}
-	}
-	return elk, nil
-}
 
 func Compile(args []js.Value) (interface{}, error) {
 	if len(args) < 1 {
@@ -196,8 +145,6 @@ func Compile(args []js.Value) (interface{}, error) {
 		switch engine {
 		case "dagre":
 			return d2dagrelayout.DefaultLayout, nil
-		case "elk":
-			return d2elklayout.DefaultLayout, nil
 		default:
 			return nil, &WASMError{Message: fmt.Sprintf("layout option '%s' not recognized", engine), Code: 400}
 		}

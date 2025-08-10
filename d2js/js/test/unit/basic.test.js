@@ -9,12 +9,7 @@ describe("D2 Unit Tests", () => {
     await d2.worker.terminate();
   }, 20000);
 
-  test("elk layout works", async () => {
-    const d2 = new D2();
-    const result = await d2.compile("x -> y", { layout: "elk" });
-    expect(result.diagram).toBeDefined();
-    await d2.worker.terminate();
-  }, 20000);
+
 
   test("import works", async () => {
     const d2 = new D2();
@@ -59,7 +54,7 @@ vars: {
     pad: 10
     center: true
     sketch: true
-    layout-engine: elk
+    layout-engine: dagre
   }
 }
 x -> y
@@ -84,7 +79,7 @@ vars: {
     pad: 10
     center: true
     sketch: true
-    layout-engine: elk
+    layout-engine: dagre
   }
 }
 x -> y
@@ -260,11 +255,11 @@ a -> b
     await d2.worker.terminate();
   }, 20000);
 
-  test("grid layout with elk engine matches go rendering", async () => {
+  test("grid layout with dagre engine matches go rendering", async () => {
     const d2 = new D2();
     const source = `vars: {
   d2-config: {
-    layout-engine: elk
+    layout-engine: dagre
   }
 }
 
@@ -298,7 +293,7 @@ group: "" {
 
     expect(groupHeight).toBe(element1Height);
 
-    // Verify the grid elements are rendered correctly with elk layout
+    // Verify the grid elements are rendered correctly with dagre layout
     expect(svg).toContain("Z3JvdXA="); // "group" base64 encoded
     expect(svg).toContain(">1</text>"); // Should contain the "1" element
     expect(svg).toContain(">2</text>"); // Should contain the "2" element

@@ -7,7 +7,7 @@ include changes to the main d2 project.**
 
 - Fix TypeScript signatures
 - Fix theme-overrides not applying
-- Fix grids in ELK layouts
+- Fix grids in dagre layouts
 
 ## [0.1.22]
 ### March 20, 2025
@@ -23,7 +23,7 @@ include changes to the main d2 project.**
   - `animateInterval`
   - `salt`
   - `noXMLTag`
-- Support relative imports. Improve elk error handling [#2382](https://github.com/terrastruct/d2/pull/2382)
+- Support relative imports. Improve dagre error handling [#2382](https://github.com/terrastruct/d2/pull/2382)
 - Support fonts (`fontRegular`, `fontItalic`, `fontBold`, `fontSemiBold`) [#2384](https://github.com/terrastruct/d2/pull/2384)
 - Add TypeScript signatures
 

@@ -32,7 +32,7 @@ export interface RenderOptions {
 
 export interface CompileOptions extends RenderOptions {
   /** Layout engine to use [default: 'dagre'] */
-  layout?: "dagre" | "elk";
+  layout?: "dagre";
   /** A byte array containing .ttf file to use for the regular font. If none provided, Source Sans Pro Regular is used. */
   fontRegular?: Uint8Array;
   /** A byte array containing .ttf file to use for the italic font. If none provided, Source Sans Pro Italic is used. */
