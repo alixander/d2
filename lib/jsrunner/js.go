@@ -121,8 +121,52 @@ func (j *jsRunner) WaitPromise(ctx context.Context, val JSValue) (interface{}, e
 		return val.Export(), nil
 	}
 
-	// For WASM environment, we can't properly wait for promises in a single-threaded environment
-	// Instead, we'll return the promise as-is and let the caller handle it
-	// This is a limitation of the WASM environment
-	return val.Export(), nil
+	// For WASM environment, we need to handle promises differently
+	// We'll use a JavaScript approach to wait for the promise
+	waitCode := `
+		(function() {
+			var promise = arguments[0];
+			var result = null;
+			var error = null;
+			var resolved = false;
+			
+			promise.then(function(value) {
+				result = value;
+				resolved = true;
+			}).catch(function(err) {
+				error = err;
+				resolved = true;
+			});
+			
+			// Wait for the promise to resolve
+			var startTime = Date.now();
+			while (!resolved && (Date.now() - startTime) < 10000) {
+				// Small delay to allow promise resolution
+				var dummy = 0;
+				for (var i = 0; i < 1000; i++) {
+					dummy += i;
+				}
+			}
+			
+			if (!resolved) {
+				throw new Error("Promise timeout");
+			}
+			
+			if (error) {
+				throw error;
+			}
+			
+			return result;
+		})
+	`
+
+	waitFunc := js.Global().Call("eval", waitCode)
+	result := waitFunc.Invoke(jsVal.val)
+
+	// Check if the result is an error
+	if result.Type() == js.TypeObject && !result.Get("message").IsUndefined() {
+		return nil, fmt.Errorf("JavaScript error: %s", result.Get("message").String())
+	}
+
+	return (&jsValue{val: result}).Export(), nil
 }

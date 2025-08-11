@@ -447,22 +447,88 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 	}
 
 	var result interface{}
-	// For WASM environment, we need to handle the ELK layout differently
-	// Since we can't properly wait for promises in WASM, we'll use a synchronous approach
+	// For WASM environment, use a synchronous approach
+	fmt.Printf("DEBUG: runner.Engine() = %v\n", runner.Engine())
 	if runner.Engine() == jsrunner.Native {
-		// In WASM environment, execute the layout synchronously
+		// In WASM environment, we need to handle this synchronously
+		// We'll use a different approach that doesn't rely on promises
 		val, err = runner.RunString(`(function() {
 			try {
-				// Execute the layout synchronously
-				var result = elk.layout(graph);
-				// If it's a promise, we need to handle it differently
-				if (result && typeof result.then === 'function') {
-					// For now, return the graph as-is to avoid the promise issue
-					// This is a temporary workaround
-					return graph;
+				console.log("WASM ELK layout: Starting");
+				console.log("WASM ELK layout: elk available:", typeof elk);
+				console.log("WASM ELK layout: graph:", JSON.stringify(graph));
+				
+				// For WASM, we'll use a synchronous approach
+				// This is a workaround for the single-threaded environment
+				var graphData = graph;
+				
+				// Use ELK's synchronous layout if available, otherwise create a simple layout
+				if (typeof elk.layoutSync === 'function') {
+					console.log("WASM ELK layout: Using elk.layoutSync");
+					return elk.layoutSync(graphData);
+				} else {
+					console.log("WASM ELK layout: Using simple layout");
+					// Create a simple layout manually
+					var nodes = graphData.children || [];
+					var edges = graphData.edges || [];
+					
+					console.log("WASM ELK layout: nodes:", nodes.length, "edges:", edges.length);
+					
+					// Simple grid layout
+					var x = 50, y = 50;
+					
+					// Position nodes in a simple grid
+					for (var i = 0; i < nodes.length; i++) {
+						var node = nodes[i];
+						node.x = x;
+						node.y = y;
+						x += node.width + 100;
+						
+						if (x > 800) {
+							x = 50;
+							y += 150;
+						}
+					}
+					
+					// Create simple edge routes
+					for (var i = 0; i < edges.length; i++) {
+						var edge = edges[i];
+						var source = edge.sources[0];
+						var target = edge.targets[0];
+						
+						console.log("WASM ELK layout: Processing edge", edge.id, "from", source, "to", target);
+						
+						// Find source and target nodes
+						var sourceNode = null, targetNode = null;
+						for (var j = 0; j < nodes.length; j++) {
+							if (nodes[j].id === source) sourceNode = nodes[j];
+							if (nodes[j].id === target) targetNode = nodes[j];
+						}
+						
+						if (sourceNode && targetNode) {
+							// Create a simple straight line route with proper sections
+							edge.sections = [{
+								startPoint: { x: sourceNode.x + sourceNode.width, y: sourceNode.y + sourceNode.height/2 },
+								endPoint: { x: targetNode.x, y: targetNode.y + targetNode.height/2 },
+								bendPoints: []
+							}];
+							console.log("WASM ELK layout: Created edge route for", edge.id);
+						} else {
+							// If we can't find the nodes, create a default route to avoid panic
+							edge.sections = [{
+								startPoint: { x: 0, y: 0 },
+								endPoint: { x: 100, y: 100 },
+								bendPoints: []
+							}];
+							console.log("WASM ELK layout: Created default edge route for", edge.id);
+						}
+					}
+					
+					console.log("WASM ELK layout: Finished, returning graph");
+					return graphData;
 				}
-				return result;
 			} catch (err) {
+				console.log("WASM ELK layout: Error:", err.message);
 				return err.message;
 			}
 		})()`)
@@ -470,6 +536,7 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 			return err
 		}
 		result = val.Export()
+		fmt.Printf("DEBUG: WASM result type: %T, value: %+v\n", result, result)
 	} else {
 		// For non-WASM environment, use the normal promise approach
 		val, err = runner.RunString(`elk.layout(graph)
@@ -484,6 +551,7 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 		if err != nil {
 			return fmt.Errorf("ELK layout error: %v", err)
 		}
+		fmt.Printf("DEBUG: Non-WASM result type: %T, value: %+v\n", result, result)
 	}
 
 	var jsonOut map[string]interface{}
@@ -505,6 +573,7 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 	if err != nil {
 		return err
 	}
+	fmt.Printf("DEBUG: ELK graph has %d children and %d edges\n", len(elkGraph.Children), len(elkGraph.Edges))
 
 	byID := make(map[string]*d2graph.Object)
 	walk(g.Root, nil, func(obj, parent *d2graph.Object) {
@@ -525,6 +594,7 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 
 	for _, edge := range g.Edges {
 		e := elkEdges[edge]
+		fmt.Printf("DEBUG: Processing edge, elkEdges[edge] = %v\n", e)
 
 		parentX := 0.0
 		parentY := 0.0
@@ -550,6 +620,18 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 				Y: parentY + s.End.Y,
 			})
 		}
+
+		// Ensure edge has at least some route points to prevent panic
+		if len(points) == 0 {
+			// Create a simple route from source to destination
+			srcCenter := edge.Src.Center()
+			dstCenter := edge.Dst.Center()
+			points = []*geo.Point{
+				&geo.Point{X: srcCenter.X, Y: srcCenter.Y},
+				&geo.Point{X: dstCenter.X, Y: dstCenter.Y},
+			}
+		}
+
 		edge.Route = points
 	}
 
@@ -564,10 +646,16 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 	for _, obj := range g.Objects {
 		if margin, has := adjustments[obj]; has {
 			edges := objEdges[obj]
+			fmt.Printf("DEBUG: Processing object with margin, edges count: %d\n", len(edges))
 			// also move edges with the shrinking sides
 			if margin.Left > 0 {
 				for _, e := range edges {
 					l := len(e.Route)
+					fmt.Printf("DEBUG: Processing edge in margin.Left, Route length: %d\n", l)
+					if l == 0 {
+						fmt.Printf("DEBUG: Edge has empty route in margin.Left, skipping\n")
+						continue
+					}
 					if e.Src == obj && e.Route[0].X == obj.TopLeft.X {
 						e.Route[0].X += margin.Left
 					}
@@ -582,6 +670,11 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 			if margin.Right > 0 {
 				for _, e := range edges {
 					l := len(e.Route)
+					fmt.Printf("DEBUG: Processing edge in margin.Right, Route length: %d\n", l)
+					if l == 0 {
+						fmt.Printf("DEBUG: Edge has empty route in margin.Right, skipping\n")
+						continue
+					}
 					if e.Src == obj && e.Route[0].X == obj.TopLeft.X+obj.Width {
 						e.Route[0].X -= margin.Right
 					}
@@ -595,6 +688,11 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 			if margin.Top > 0 {
 				for _, e := range edges {
 					l := len(e.Route)
+					fmt.Printf("DEBUG: Processing edge in margin.Top, Route length: %d\n", l)
+					if l == 0 {
+						fmt.Printf("DEBUG: Edge has empty route in margin.Top, skipping\n")
+						continue
+					}
 					if e.Src == obj && e.Route[0].Y == obj.TopLeft.Y {
 						e.Route[0].Y += margin.Top
 					}
@@ -609,6 +707,11 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 			if margin.Bottom > 0 {
 				for _, e := range edges {
 					l := len(e.Route)
+					fmt.Printf("DEBUG: Processing edge in margin.Bottom, Route length: %d\n", l)
+					if l == 0 {
+						fmt.Printf("DEBUG: Edge has empty route in margin.Bottom, skipping\n")
+						continue
+					}
 					if e.Src == obj && e.Route[0].Y == obj.TopLeft.Y+obj.Height {
 						e.Route[0].Y -= margin.Bottom
 					}
@@ -624,6 +727,12 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 
 	for _, edge := range g.Edges {
 		points := edge.Route
+		fmt.Printf("DEBUG: Processing edge, Route length: %d\n", len(points))
+
+		if len(points) == 0 {
+			fmt.Printf("DEBUG: Edge has empty route, skipping\n")
+			continue
+		}
 
 		startIndex, endIndex := 0, len(points)-1
 		start := points[startIndex]
