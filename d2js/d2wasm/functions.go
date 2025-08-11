@@ -110,8 +110,6 @@ func GetRefRanges(args []js.Value) (interface{}, error) {
 	}, nil
 }
 
-
-
 func Compile(args []js.Value) (interface{}, error) {
 	if len(args) < 1 {
 		return nil, &WASMError{Message: "missing JSON argument", Code: 400}
