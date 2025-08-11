@@ -447,93 +447,12 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 	}
 
 	var result interface{}
-	// For WASM environment, use a synchronous approach
 	fmt.Printf("DEBUG: runner.Engine() = %v\n", runner.Engine())
 	if runner.Engine() == jsrunner.Native {
-		// In WASM environment, we need to handle this synchronously
-		// We'll use a different approach that doesn't rely on promises
-		val, err = runner.RunString(`(function() {
-			try {
-				console.log("WASM ELK layout: Starting");
-				console.log("WASM ELK layout: elk available:", typeof elk);
-				console.log("WASM ELK layout: graph:", JSON.stringify(graph));
-				
-				// For WASM, we'll use a synchronous approach
-				// This is a workaround for the single-threaded environment
-				var graphData = graph;
-				
-				// Use ELK's synchronous layout if available, otherwise create a simple layout
-				if (typeof elk.layoutSync === 'function') {
-					console.log("WASM ELK layout: Using elk.layoutSync");
-					return elk.layoutSync(graphData);
-				} else {
-					console.log("WASM ELK layout: Using simple layout");
-					// Create a simple layout manually
-					var nodes = graphData.children || [];
-					var edges = graphData.edges || [];
-					
-					console.log("WASM ELK layout: nodes:", nodes.length, "edges:", edges.length);
-					
-					// Simple grid layout
-					var x = 50, y = 50;
-					
-					// Position nodes in a simple grid
-					for (var i = 0; i < nodes.length; i++) {
-						var node = nodes[i];
-						node.x = x;
-						node.y = y;
-						x += node.width + 100;
-						
-						if (x > 800) {
-							x = 50;
-							y += 150;
-						}
-					}
-					
-					// Create simple edge routes
-					for (var i = 0; i < edges.length; i++) {
-						var edge = edges[i];
-						var source = edge.sources[0];
-						var target = edge.targets[0];
-						
-						console.log("WASM ELK layout: Processing edge", edge.id, "from", source, "to", target);
-						
-						// Find source and target nodes
-						var sourceNode = null, targetNode = null;
-						for (var j = 0; j < nodes.length; j++) {
-							if (nodes[j].id === source) sourceNode = nodes[j];
-							if (nodes[j].id === target) targetNode = nodes[j];
-						}
-						
-						if (sourceNode && targetNode) {
-							// Create a simple straight line route with proper sections
-							edge.sections = [{
-								startPoint: { x: sourceNode.x + sourceNode.width, y: sourceNode.y + sourceNode.height/2 },
-								endPoint: { x: targetNode.x, y: targetNode.y + targetNode.height/2 },
-								bendPoints: []
-							}];
-							console.log("WASM ELK layout: Created edge route for", edge.id);
-						} else {
-							// If we can't find the nodes, create a default route to avoid panic
-							edge.sections = [{
-								startPoint: { x: 0, y: 0 },
-								endPoint: { x: 100, y: 100 },
-								bendPoints: []
-							}];
-							console.log("WASM ELK layout: Created default edge route for", edge.id);
-						}
-					}
-					
-					console.log("WASM ELK layout: Finished, returning graph");
-					return graphData;
-				}
-			} catch (err) {
-				console.log("WASM ELK layout: Error:", err.message);
-				return err.message;
-			}
-		})()`)
+		// For WASM environment, use the synchronous layoutSync function
+		val, err = runner.RunString(`elk.layoutSync(graph)`)
 		if err != nil {
-			return err
+			return fmt.Errorf("ELK layoutSync error: %v", err)
 		}
 		result = val.Export()
 		fmt.Printf("DEBUG: WASM result type: %T, value: %+v\n", result, result)
