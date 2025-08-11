@@ -165,12 +165,12 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 			return err
 		}
 
-		if _, err := runner.RunString(elkJS); err != nil {
-			return err
-		}
-		if _, err := runner.RunString(setupJS); err != nil {
-			return err
-		}
+	}
+	if _, err := runner.RunString(elkJS); err != nil {
+		return err
+	}
+	if _, err := runner.RunString(setupJS); err != nil {
+		return err
 	}
 
 	elkGraph := &ELKGraph{
@@ -441,20 +441,16 @@ func Layout(ctx context.Context, g *d2graph.Graph, opts *ConfigurableOpts) (err 
 	}
 
 	var val jsrunner.JSValue
-	if runner.Engine() == jsrunner.Goja {
-		loadScript := fmt.Sprintf(`var graph = %s`, raw)
+	loadScript := fmt.Sprintf(`var graph = %s`, raw)
 
-		if _, err := runner.RunString(loadScript); err != nil {
-			return err
-		}
+	if _, err := runner.RunString(loadScript); err != nil {
+		return err
+	}
 
-		val, err = runner.RunString(`elk.layout(graph)
+	val, err = runner.RunString(`elk.layout(graph)
 .then(s => s)
 .catch(err => err.message)
 `)
-	} else {
-		val, err = runner.MustGet("elkResult")
-	}
 	if err != nil {
 		return err
 	}
