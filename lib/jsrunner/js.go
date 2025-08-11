@@ -121,40 +121,8 @@ func (j *jsRunner) WaitPromise(ctx context.Context, val JSValue) (interface{}, e
 		return val.Export(), nil
 	}
 
-	// Create a channel to receive the result
-	resultChan := make(chan interface{}, 1)
-	errorChan := make(chan error, 1)
-
-	// Create the promise handlers
-	thenFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		if len(args) > 0 {
-			result := (&jsValue{val: args[0]}).Export()
-			resultChan <- result
-		}
-		return js.Undefined()
-	})
-	defer thenFunc.Release()
-
-	catchFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		if len(args) > 0 {
-			err := fmt.Errorf("promise rejected: %v", args[0])
-			errorChan <- err
-		}
-		return js.Undefined()
-	})
-	defer catchFunc.Release()
-
-	// Call .then() and .catch() on the promise
-	jsVal.val.Call("then", thenFunc)
-	jsVal.val.Call("catch", catchFunc)
-
-	// Wait for either result or error, with context cancellation
-	select {
-	case result := <-resultChan:
-		return result, nil
-	case err := <-errorChan:
-		return nil, err
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	// For WASM environment, we can't properly wait for promises in a single-threaded environment
+	// Instead, we'll return the promise as-is and let the caller handle it
+	// This is a limitation of the WASM environment
+	return val.Export(), nil
 }

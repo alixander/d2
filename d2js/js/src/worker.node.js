@@ -34,17 +34,17 @@ function loadELK() {
         globalThis.elk = new globalThis.ELK();
         console.log("Created elk instance:", typeof globalThis.elk);
       }
+
+      // Also make sure it's available in the global scope for WASM
+      if (typeof globalThis.window !== "undefined") {
+        globalThis.window.elk = globalThis.elk;
+      }
+      if (typeof globalThis.self !== "undefined") {
+        globalThis.self.elk = globalThis.elk;
+      }
     } catch (err) {
       console.error("Failed to load ELK library:", err);
-      // Fallback to a minimal implementation
-      globalThis.ELK = function () {
-        this.layout = function (graph) {
-          return new Promise((resolve) => {
-            resolve(graph);
-          });
-        };
-      };
-      globalThis.elk = new globalThis.ELK();
+      throw err; // Don't provide fallback, let it fail
     }
   }
 }
