@@ -1,4 +1,7 @@
 import { parentPort } from "node:worker_threads";
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 let currentPort;
 let d2;
@@ -6,6 +9,44 @@ let d2;
 function loadScript(content) {
   const func = new Function(content);
   func.call(globalThis);
+}
+
+// Load ELK library for WASM environment
+function loadELK() {
+  if (typeof globalThis.ELK === "undefined") {
+    try {
+      const __dirname = dirname(fileURLToPath(import.meta.url));
+      const elkJS = readFileSync(join(__dirname, "elk.js"), "utf8");
+      const setupJS = readFileSync(join(__dirname, "setup.js"), "utf8");
+
+      console.log("Loading ELK library...");
+      // Load the ELK library
+      loadScript(elkJS);
+      loadScript(setupJS);
+      console.log("ELK library loaded, ELK available:", typeof globalThis.ELK);
+      console.log("elk variable available:", typeof globalThis.elk);
+
+      // Make sure elk is available globally for WASM
+      if (
+        typeof globalThis.elk === "undefined" &&
+        typeof globalThis.ELK !== "undefined"
+      ) {
+        globalThis.elk = new globalThis.ELK();
+        console.log("Created elk instance:", typeof globalThis.elk);
+      }
+    } catch (err) {
+      console.error("Failed to load ELK library:", err);
+      // Fallback to a minimal implementation
+      globalThis.ELK = function () {
+        this.layout = function (graph) {
+          return new Promise((resolve) => {
+            resolve(graph);
+          });
+        };
+      };
+      globalThis.elk = new globalThis.ELK();
+    }
+  }
 }
 
 export function setupMessageHandler(isNode, port, initWasm) {
@@ -20,6 +61,7 @@ export function setupMessageHandler(isNode, port, initWasm) {
           if (isNode) {
             loadScript(data.wasmExecContent);
           }
+          loadELK(); // Load ELK library before initializing WASM
           d2 = await initWasm(data.wasm);
           currentPort.postMessage({ type: "ready" });
         } catch (err) {

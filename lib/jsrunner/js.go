@@ -113,5 +113,48 @@ func (j *jsRunner) Set(name string, value interface{}) error {
 }
 
 func (j *jsRunner) WaitPromise(ctx context.Context, val JSValue) (interface{}, error) {
-	return val.Export(), nil
+	// Check if the value is actually a promise
+	jsVal := val.(*jsValue)
+
+	// If it's not a promise, just export it
+	if !jsVal.val.InstanceOf(js.Global().Get("Promise")) {
+		return val.Export(), nil
+	}
+
+	// Create a channel to receive the result
+	resultChan := make(chan interface{}, 1)
+	errorChan := make(chan error, 1)
+
+	// Create the promise handlers
+	thenFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		if len(args) > 0 {
+			result := (&jsValue{val: args[0]}).Export()
+			resultChan <- result
+		}
+		return js.Undefined()
+	})
+	defer thenFunc.Release()
+
+	catchFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		if len(args) > 0 {
+			err := fmt.Errorf("promise rejected: %v", args[0])
+			errorChan <- err
+		}
+		return js.Undefined()
+	})
+	defer catchFunc.Release()
+
+	// Call .then() and .catch() on the promise
+	jsVal.val.Call("then", thenFunc)
+	jsVal.val.Call("catch", catchFunc)
+
+	// Wait for either result or error, with context cancellation
+	select {
+	case result := <-resultChan:
+		return result, nil
+	case err := <-errorChan:
+		return nil, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
