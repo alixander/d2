@@ -1,2 +1,3 @@
 var setTimeout = function(f) {f()};
-const elk = new ELK();
+var elk = new ELK();
+globalThis.elk = elk;

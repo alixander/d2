@@ -22,9 +22,23 @@ function loadELK() {
       console.log("Loading ELK library...");
       // Load the ELK library
       loadScript(elkJS);
-      loadScript(setupJS);
-      console.log("ELK library loaded, ELK available:", typeof globalThis.ELK);
-      console.log("elk variable available:", typeof globalThis.elk);
+      console.log("After loading elkJS, ELK available:", typeof globalThis.ELK);
+      try {
+        loadScript(setupJS);
+        console.log("After loading setupJS, ELK available:", typeof globalThis.ELK);
+        console.log(
+          "After loading setupJS, elk variable available:",
+          typeof globalThis.elk
+        );
+        console.log("After loading setupJS, globalThis.elk:", globalThis.elk);
+        console.log(
+          "After loading setupJS, typeof globalThis.elk:",
+          typeof globalThis.elk
+        );
+      } catch (err) {
+        console.error("Error loading setupJS:", err);
+        throw err;
+      }
 
       // Make sure elk is available globally for WASM
       if (
