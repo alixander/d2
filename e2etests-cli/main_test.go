@@ -58,6 +58,64 @@ func TestCLI_E2E(t *testing.T) {
 			},
 		},
 		{
+			name:   "png-with-remote-icons",
+			skipCI: true,
+			run: func(t *testing.T, ctx context.Context, dir string, env *xos.Env) {
+				writeFile(t, dir, "hello-world.d2", `direction: right
+
+title: {
+  label: Normal deployment
+  near: bottom-center
+  shape: text
+  style.font-size: 40
+  style.underline: true
+}
+
+local: {
+  code: {
+    icon: https://icons.terrastruct.com/dev/go.svg
+  }
+}
+local.code -> github.dev: commit
+
+github: {
+  icon: https://icons.terrastruct.com/dev/github.svg
+  dev
+  master: {
+    workflows
+  }
+
+  dev -> master.workflows: merge trigger
+}
+
+github.master.workflows -> aws.builders: upload and run
+
+aws: {
+  builders -> s3: upload binaries
+  ec2 <- s3: pull binaries
+
+  builders: {
+    icon: https://icons.terrastruct.com/aws/Developer%20Tools/AWS-CodeBuild_light-bg.svg
+  }
+  s3: {
+    icon: https://icons.terrastruct.com/aws/Storage/Amazon-S3-Glacier_light-bg.svg
+  }
+  ec2: {
+    icon: https://icons.terrastruct.com/aws/_Group%20Icons/EC2-instance-container_light-bg.svg
+  }
+}
+
+local.code -> aws.ec2: {
+  style.opacity: 0.0
+}
+`)
+				err := runTestMain(t, ctx, dir, env, "hello-world.d2", "hello-world.png")
+				assert.Success(t, err)
+				png := readFile(t, dir, "hello-world.png")
+				testdataIgnoreDiff(t, ".png", png)
+			},
+		},
+		{
 			name: "center",
 			run: func(t *testing.T, ctx context.Context, dir string, env *xos.Env) {
 				writeFile(t, dir, "hello-world.d2", `x -> y`)
