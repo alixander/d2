@@ -793,14 +793,15 @@ func (c Connection) CSSStyle() string {
 
 	out += fmt.Sprintf(`stroke-width:%d;`, c.StrokeWidth)
 	strokeDash := c.StrokeDash
-	if strokeDash == 0 && c.Animated {
+	animated := c.Animated && c.Icon == nil
+	if strokeDash == 0 && animated {
 		strokeDash = 5
 	}
 	if strokeDash != 0 {
 		dashSize, gapSize := svg.GetStrokeDashAttributes(float64(c.StrokeWidth), strokeDash)
 		out += fmt.Sprintf(`stroke-dasharray:%f,%f;`, dashSize, gapSize)
 
-		if c.Animated {
+		if animated {
 			dashOffset := -10
 			if c.SrcArrow != NoArrowhead && c.DstArrow == NoArrowhead {
 				dashOffset = 10

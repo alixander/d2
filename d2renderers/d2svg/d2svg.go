@@ -1042,23 +1042,7 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 		markerEnd = fmt.Sprintf(`marker-end="url(#%s)" `, id)
 	}
 
-	if connection.Icon != nil {
-		iconPos := connection.GetIconPosition()
-		if iconPos != nil {
-			connectionIconClipPath := ""
-			if connection.IconBorderRadius != 0 {
-				connectionIconClipPath = fmt.Sprintf(` clip-path="inset(0 round %fpx)"`, connection.IconBorderRadius)
-			}
-			fmt.Fprintf(writer, `<image href="%s" x="%f" y="%f" width="%d" height="%d"%s />`,
-				html.EscapeString(connection.Icon.String()),
-				iconPos.X,
-				iconPos.Y,
-				d2target.DEFAULT_ICON_SIZE,
-				d2target.DEFAULT_ICON_SIZE,
-				connectionIconClipPath,
-			)
-		}
-	}
+	animatedIcon := connection.Animated && connection.Icon != nil
 
 	var labelTL *geo.Point
 	if connection.Label != "" {
@@ -1070,7 +1054,7 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 		width := connection.LabelWidth
 		height := connection.LabelHeight
 
-		if connection.Icon != nil {
+		if connection.Icon != nil && !animatedIcon {
 			width += d2target.CONNECTION_ICON_LABEL_GAP + d2target.DEFAULT_ICON_SIZE
 			maskTL.X -= float64(d2target.CONNECTION_ICON_LABEL_GAP + d2target.DEFAULT_ICON_SIZE)
 		}
@@ -1080,7 +1064,7 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 		} else {
 			labelMask = makeLabelMask(maskTL, width, height, 0.75)
 		}
-	} else if connection.Icon != nil {
+	} else if connection.Icon != nil && !animatedIcon {
 		iconPos := connection.GetIconPosition()
 		if iconPos != nil {
 			maskTL := &geo.Point{
@@ -1114,12 +1098,12 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 		fmt.Fprint(writer, arrowPaths)
 	} else {
 		animatedClass := ""
-		if connection.Animated {
+		if connection.Animated && connection.Icon == nil {
 			animatedClass = " animated-connection"
 		}
 
 		// If connection is animated and bidirectional
-		if connection.Animated && ((connection.DstArrow == d2target.NoArrowhead && connection.SrcArrow == d2target.NoArrowhead) || (connection.DstArrow != d2target.NoArrowhead && connection.SrcArrow != d2target.NoArrowhead)) {
+		if connection.Animated && connection.Icon == nil && ((connection.DstArrow == d2target.NoArrowhead && connection.SrcArrow == d2target.NoArrowhead) || (connection.DstArrow != d2target.NoArrowhead && connection.SrcArrow != d2target.NoArrowhead)) {
 			// There is no pure CSS way to animate bidirectional connections in two directions, so we split it up
 			path1, path2, err := svg.SplitPath(path, 0.5)
 
@@ -1302,6 +1286,79 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 	if connection.DstLabel != nil && connection.DstLabel.Label != "" {
 		fmt.Fprint(writer, renderArrowheadLabel(connection, connection.DstLabel.Label, true, inlineTheme))
 	}
+
+	if animatedIcon {
+		iconCenterOffset := float64(d2target.DEFAULT_ICON_SIZE) / 2
+		animationPath := path
+		pathData := strings.Split(path, " ")
+		pathLen, err := svg.PathLength(pathData)
+		if err == nil && pathLen > 0 && len(connection.Route) >= 2 {
+			iconWidth := float64(d2target.DEFAULT_ICON_SIZE)
+			iconHeight := float64(d2target.DEFAULT_ICON_SIZE)
+
+			startSegment := connection.Route[0].VectorTo(connection.Route[1])
+			endSegment := connection.Route[len(connection.Route)-2].VectorTo(connection.Route[len(connection.Route)-1])
+
+			startBuffer := iconWidth / 2
+			if startSegment[0] == 0 {
+				startBuffer = iconHeight / 2
+			} else if startSegment[1] != 0 {
+				startBuffer = math.Max(iconWidth/2, iconHeight/2)
+			}
+
+			endBuffer := iconWidth / 2
+			if endSegment[0] == 0 {
+				endBuffer = iconHeight / 2
+			} else if endSegment[1] != 0 {
+				endBuffer = math.Max(iconWidth/2, iconHeight/2)
+			}
+
+			trimStart := startBuffer / pathLen
+			trimEnd := 1.0 - endBuffer/pathLen
+			if trimStart < trimEnd {
+				_, path2, err := svg.SplitPath(path, trimStart)
+				if err == nil {
+					path2 = strings.TrimSpace(path2)
+					path1, _, err := svg.SplitPath(path2, (trimEnd-trimStart)/(1.0-trimStart))
+					if err == nil {
+						animationPath = path1
+					}
+				}
+			}
+		}
+
+		connectionIconClipPath := ""
+		if connection.IconBorderRadius != 0 {
+			connectionIconClipPath = fmt.Sprintf(` clip-path="inset(0 round %fpx)"`, connection.IconBorderRadius)
+		}
+
+		fmt.Fprintf(writer, `<g><animateMotion dur="3s" repeatCount="indefinite" path="%s"/><image href="%s" x="%f" y="%f" width="%d" height="%d"%s /></g>`,
+			animationPath,
+			html.EscapeString(connection.Icon.String()),
+			-iconCenterOffset,
+			-iconCenterOffset,
+			d2target.DEFAULT_ICON_SIZE,
+			d2target.DEFAULT_ICON_SIZE,
+			connectionIconClipPath,
+		)
+	} else if connection.Icon != nil {
+		iconPos := connection.GetIconPosition()
+		if iconPos != nil {
+			connectionIconClipPath := ""
+			if connection.IconBorderRadius != 0 {
+				connectionIconClipPath = fmt.Sprintf(` clip-path="inset(0 round %fpx)"`, connection.IconBorderRadius)
+			}
+			fmt.Fprintf(writer, `<image href="%s" x="%f" y="%f" width="%d" height="%d"%s />`,
+				html.EscapeString(connection.Icon.String()),
+				iconPos.X,
+				iconPos.Y,
+				d2target.DEFAULT_ICON_SIZE,
+				d2target.DEFAULT_ICON_SIZE,
+				connectionIconClipPath,
+			)
+		}
+	}
+
 	fmt.Fprintf(writer, `</g>`)
 	return
 }

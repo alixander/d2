@@ -1758,3 +1758,10 @@ style: {fill-pattern: dots; fill:"radial-gradient(#fbfbf8, #e3e3f0)"; stroke: "#
 
 a->b
 
+-- animated-connection-icon --
+a -> b: {style.animated: true; icon: https://icons.terrastruct.com/essentials%2F213-alarm.svg}
+a <-> c: {style.animated: true}
+a <-> d: {style.animated: true}
+a <-> e: {style.animated: true}
+f <-> g: {style.animated: true}
+x -- x: {style.animated: true}
