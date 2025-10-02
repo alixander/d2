@@ -371,16 +371,17 @@ func Paths(r jsrunner.JSRunner, shape d2target.Shape, diagramHash string, paths 
 }
 
 func Connection(r jsrunner.JSRunner, connection d2target.Connection, path, attrs string) (string, error) {
+	isBidirectional := (connection.DstArrow == d2target.NoArrowhead && connection.SrcArrow == d2target.NoArrowhead) || (connection.DstArrow != d2target.NoArrowhead && connection.SrcArrow != d2target.NoArrowhead)
 	animatedClass := ""
-	animatedGrow := connection.Animated && connection.Icon == nil && connection.StrokeDash == 0
-	if connection.Animated && connection.Icon == nil && connection.StrokeDash != 0 {
+	animatedGrow := connection.Animated && connection.Icon == nil && connection.StrokeDash == 0 && !isBidirectional
+	if connection.Animated && connection.Icon == nil && (connection.StrokeDash != 0 || isBidirectional) {
 		animatedClass = " animated-connection"
 	} else if animatedGrow {
 		animatedClass = " animated-connection-grow"
 	}
 
-	// If connection is animated and bidirectional (and has stroke-dash)
-	if connection.Animated && connection.Icon == nil && connection.StrokeDash != 0 && ((connection.DstArrow == d2target.NoArrowhead && connection.SrcArrow == d2target.NoArrowhead) || (connection.DstArrow != d2target.NoArrowhead && connection.SrcArrow != d2target.NoArrowhead)) {
+	// If connection is animated and bidirectional
+	if connection.Animated && connection.Icon == nil && isBidirectional {
 		// There is no pure CSS way to animate bidirectional connections in two directions, so we split it up
 		path1, path2, err := svg.SplitPath(path, 0.5)
 

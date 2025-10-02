@@ -1091,7 +1091,8 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 		}
 		fmt.Fprint(writer, out)
 
-		animatedGrow := connection.Animated && connection.Icon == nil && connection.StrokeDash == 0
+		isBidirectional := (connection.DstArrow == d2target.NoArrowhead && connection.SrcArrow == d2target.NoArrowhead) || (connection.DstArrow != d2target.NoArrowhead && connection.SrcArrow != d2target.NoArrowhead)
+		animatedGrow := connection.Animated && connection.Icon == nil && connection.StrokeDash == 0 && !isBidirectional
 		if animatedGrow && connection.DstArrow != d2target.NoArrowhead {
 			arrowJS, extraJS := d2sketch.ArrowheadJS(jsRunner, connection.DstArrow, connection.Stroke, connection.StrokeWidth)
 			if arrowJS != "" {
@@ -1135,16 +1136,17 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 			fmt.Fprint(writer, arrowPaths)
 		}
 	} else {
+		isBidirectional := (connection.DstArrow == d2target.NoArrowhead && connection.SrcArrow == d2target.NoArrowhead) || (connection.DstArrow != d2target.NoArrowhead && connection.SrcArrow != d2target.NoArrowhead)
 		animatedClass := ""
-		animatedGrow := connection.Animated && connection.Icon == nil && connection.StrokeDash == 0
-		if connection.Animated && connection.Icon == nil && connection.StrokeDash != 0 {
+		animatedGrow := connection.Animated && connection.Icon == nil && connection.StrokeDash == 0 && !isBidirectional
+		if connection.Animated && connection.Icon == nil && (connection.StrokeDash != 0 || isBidirectional) {
 			animatedClass = " animated-connection"
 		} else if animatedGrow {
 			animatedClass = " animated-connection-grow"
 		}
 
-		// If connection is animated and bidirectional (and has stroke-dash)
-		if connection.Animated && connection.Icon == nil && connection.StrokeDash != 0 && ((connection.DstArrow == d2target.NoArrowhead && connection.SrcArrow == d2target.NoArrowhead) || (connection.DstArrow != d2target.NoArrowhead && connection.SrcArrow != d2target.NoArrowhead)) {
+		// If connection is animated and bidirectional
+		if connection.Animated && connection.Icon == nil && isBidirectional {
 			// There is no pure CSS way to animate bidirectional connections in two directions, so we split it up
 			path1, path2, err := svg.SplitPath(path, 0.5)
 
@@ -1158,13 +1160,6 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 			pathEl1.Stroke = connection.Stroke
 			pathEl1.ClassName = fmt.Sprintf("connection%s", animatedClass)
 			pathEl1.Style = connection.CSSStyle()
-			if animatedGrow {
-				pathData1 := strings.Split(strings.TrimSpace(path1), " ")
-				pathLen1, err := svg.PathLength(pathData1)
-				if err == nil {
-					pathEl1.Style += fmt.Sprintf("stroke-dasharray:%f;stroke-dashoffset:%f;", pathLen1, pathLen1)
-				}
-			}
 			pathEl1.Style += "animation-direction: reverse;"
 			pathEl1.Attributes = fmt.Sprintf("%s%s", markerStart, mask)
 			fmt.Fprint(writer, pathEl1.Render())
@@ -1175,13 +1170,6 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 			pathEl2.Stroke = connection.Stroke
 			pathEl2.ClassName = fmt.Sprintf("connection%s", animatedClass)
 			pathEl2.Style = connection.CSSStyle()
-			if animatedGrow {
-				pathData2 := strings.Split(strings.TrimSpace(path2), " ")
-				pathLen2, err := svg.PathLength(pathData2)
-				if err == nil {
-					pathEl2.Style += fmt.Sprintf("stroke-dasharray:%f;stroke-dashoffset:%f;", pathLen2, pathLen2)
-				}
-			}
 			pathEl2.Attributes = fmt.Sprintf("%s%s", markerEnd, mask)
 			fmt.Fprint(writer, pathEl2.Render())
 		} else {
