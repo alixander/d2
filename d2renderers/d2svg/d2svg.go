@@ -1102,6 +1102,8 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 		animatedGrow := connection.Animated && connection.Icon == nil && connection.StrokeDash == 0
 		if connection.Animated && connection.Icon == nil && connection.StrokeDash != 0 {
 			animatedClass = " animated-connection"
+		} else if animatedGrow {
+			animatedClass = " animated-connection-grow"
 		}
 
 		// If connection is animated and bidirectional (and has stroke-dash)
@@ -1159,67 +1161,62 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 					pathAttrs = fmt.Sprintf("%s%s", markerStart, mask)
 				}
 			}
-			pathEl.Attributes = pathAttrs
-			fmt.Fprint(writer, pathEl.Render())
-
 			if animatedGrow {
-				duration := animateInterval
-				if duration == 0 {
-					duration = 1000
-				}
-
 				pathData := strings.Split(strings.TrimSpace(path), " ")
 				pathLen, err := svg.PathLength(pathData)
 				if err == nil {
-					fmt.Fprintf(writer, `<animate attributeName="stroke-dasharray" values="%f;%f" dur="%dms" repeatCount="indefinite"/>`,
-						pathLen, pathLen, duration)
-					fmt.Fprintf(writer, `<animate attributeName="stroke-dashoffset" values="%f;0" dur="%dms" repeatCount="indefinite"/>`,
-						pathLen, duration)
+					pathEl.Style += fmt.Sprintf("stroke-dasharray:%f;stroke-dashoffset:%f;", pathLen, pathLen)
+				}
+			}
+			pathEl.Attributes = pathAttrs
+			fmt.Fprint(writer, pathEl.Render())
+
+			if animatedGrow && connection.DstArrow != d2target.NoArrowhead {
+				arrowWidth, arrowHeight := connection.DstArrow.Dimensions(float64(connection.StrokeWidth))
+
+				var arrowShape string
+				arrowStyle := fmt.Sprintf(`offset-path: path('%s'); offset-rotate: auto; offset-distance: 0%%;`, path)
+				switch connection.DstArrow {
+				case d2target.TriangleArrowhead:
+					polygonEl := d2themes.NewThemableElement("polygon", inlineTheme)
+					polygonEl.Fill = connection.Stroke
+					polygonEl.ClassName = "connection animated-arrowhead"
+					polygonEl.Attributes = fmt.Sprintf(`stroke-width="%d"`, connection.StrokeWidth)
+					polygonEl.Style = arrowStyle
+					polygonEl.Points = fmt.Sprintf("%f,%f %f,%f %f,%f",
+						-arrowWidth/2, -arrowHeight/2,
+						arrowWidth/2, 0.,
+						-arrowWidth/2, arrowHeight/2,
+					)
+					arrowShape = polygonEl.Render()
+				case d2target.ArrowArrowhead:
+					polygonEl := d2themes.NewThemableElement("polygon", inlineTheme)
+					polygonEl.Fill = connection.Stroke
+					polygonEl.ClassName = "connection animated-arrowhead"
+					polygonEl.Attributes = fmt.Sprintf(`stroke-width="%d"`, connection.StrokeWidth)
+					polygonEl.Style = arrowStyle
+					polygonEl.Points = fmt.Sprintf("%f,%f %f,%f %f,%f %f,%f",
+						-arrowWidth/2, -arrowHeight/2,
+						arrowWidth/2, 0.,
+						-arrowWidth/2, arrowHeight/2,
+						-arrowWidth/2+arrowWidth/4, 0.,
+					)
+					arrowShape = polygonEl.Render()
+				default:
+					polygonEl := d2themes.NewThemableElement("polygon", inlineTheme)
+					polygonEl.Fill = connection.Stroke
+					polygonEl.ClassName = "connection animated-arrowhead"
+					polygonEl.Attributes = fmt.Sprintf(`stroke-width="%d"`, connection.StrokeWidth)
+					polygonEl.Style = arrowStyle
+					polygonEl.Points = fmt.Sprintf("%f,%f %f,%f %f,%f",
+						-arrowWidth/2, -arrowHeight/2,
+						arrowWidth/2, 0.,
+						-arrowWidth/2, arrowHeight/2,
+					)
+					arrowShape = polygonEl.Render()
 				}
 
-				if connection.DstArrow != d2target.NoArrowhead {
-					arrowWidth, arrowHeight := connection.DstArrow.Dimensions(float64(connection.StrokeWidth))
-
-					var arrowShape string
-					switch connection.DstArrow {
-					case d2target.TriangleArrowhead:
-						polygonEl := d2themes.NewThemableElement("polygon", inlineTheme)
-						polygonEl.Fill = connection.Stroke
-						polygonEl.ClassName = "connection"
-						polygonEl.Attributes = fmt.Sprintf(`stroke-width="%d"`, connection.StrokeWidth)
-						polygonEl.Points = fmt.Sprintf("%f,%f %f,%f %f,%f",
-							-arrowWidth/2, -arrowHeight/2,
-							arrowWidth/2, 0.,
-							-arrowWidth/2, arrowHeight/2,
-						)
-						arrowShape = polygonEl.Render()
-					case d2target.ArrowArrowhead:
-						polygonEl := d2themes.NewThemableElement("polygon", inlineTheme)
-						polygonEl.Fill = connection.Stroke
-						polygonEl.ClassName = "connection"
-						polygonEl.Attributes = fmt.Sprintf(`stroke-width="%d"`, connection.StrokeWidth)
-						polygonEl.Points = fmt.Sprintf("%f,%f %f,%f %f,%f %f,%f",
-							-arrowWidth/2, -arrowHeight/2,
-							arrowWidth/2, 0.,
-							-arrowWidth/2, arrowHeight/2,
-							-arrowWidth/2+arrowWidth/4, 0.,
-						)
-						arrowShape = polygonEl.Render()
-					default:
-						polygonEl := d2themes.NewThemableElement("polygon", inlineTheme)
-						polygonEl.Fill = connection.Stroke
-						polygonEl.ClassName = "connection"
-						polygonEl.Attributes = fmt.Sprintf(`stroke-width="%d"`, connection.StrokeWidth)
-						polygonEl.Points = fmt.Sprintf("%f,%f %f,%f %f,%f",
-							-arrowWidth/2, -arrowHeight/2,
-							arrowWidth/2, 0.,
-							-arrowWidth/2, arrowHeight/2,
-						)
-						arrowShape = polygonEl.Render()
-					}
-
-					fmt.Fprintf(writer, `<g><animateMotion dur="%dms" repeatCount="indefinite" rotate="auto" path="%s"/>%s</g>`, duration, path, arrowShape)
-				}
+				fmt.Fprint(writer, arrowShape)
 			}
 		}
 	}
@@ -2682,6 +2679,24 @@ func EmbedFonts(buf *bytes.Buffer, diagramHash, source string, fontFamily *d2fon
 }
 .animated-connection-grow {
 	animation: pathdraw 1s linear infinite;
+}
+`,
+	)
+
+	appendOnTrigger(
+		buf,
+		source,
+		[]string{
+			`animated-arrowhead`,
+		},
+		`
+@keyframes arrowheadpath {
+	to {
+		offset-distance: 100%;
+	}
+}
+.animated-arrowhead {
+	animation: arrowheadpath 1s linear infinite;
 }
 `,
 	)
