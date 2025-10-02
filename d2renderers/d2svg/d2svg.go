@@ -1370,62 +1370,22 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 	if animatedIcon {
 		iconCenterOffset := float64(d2target.DEFAULT_ICON_SIZE) / 2
 		animationPath := path
-		pathData := strings.Split(path, " ")
-		pathLen, err := svg.PathLength(pathData)
-		if err == nil && pathLen > 0 && len(connection.Route) >= 2 {
-			iconWidth := float64(d2target.DEFAULT_ICON_SIZE)
-			iconHeight := float64(d2target.DEFAULT_ICON_SIZE)
-
-			startSegment := connection.Route[0].VectorTo(connection.Route[1])
-			endSegment := connection.Route[len(connection.Route)-2].VectorTo(connection.Route[len(connection.Route)-1])
-
-			startBuffer := iconWidth / 2
-			if startSegment[0] == 0 {
-				startBuffer = iconHeight / 2
-			} else if startSegment[1] != 0 {
-				startBuffer = math.Max(iconWidth/2, iconHeight/2)
-			}
-
-			endBuffer := iconWidth / 2
-			if endSegment[0] == 0 {
-				endBuffer = iconHeight / 2
-			} else if endSegment[1] != 0 {
-				endBuffer = math.Max(iconWidth/2, iconHeight/2)
-			}
-
-			trimStart := startBuffer / pathLen
-			trimEnd := 1.0 - endBuffer/pathLen
-			if trimStart < trimEnd {
-				_, path2, err := svg.SplitPath(path, trimStart)
-				if err == nil {
-					path2 = strings.TrimSpace(path2)
-					path1, _, err := svg.SplitPath(path2, (trimEnd-trimStart)/(1.0-trimStart))
-					if err == nil {
-						animationPath = path1
-					}
-				}
-			}
-		}
 
 		connectionIconClipPath := ""
 		if connection.IconBorderRadius != 0 {
 			connectionIconClipPath = fmt.Sprintf(` clip-path="inset(0 round %fpx)"`, connection.IconBorderRadius)
 		}
 
-		duration := animateInterval
-		if duration == 0 {
-			duration = 1000
-		}
+		iconStyle := fmt.Sprintf(`offset-path: path('%s'); offset-rotate: 0deg; offset-distance: 0%%;`, animationPath)
 
-		fmt.Fprintf(writer, `<g><animateMotion dur="%dms" repeatCount="indefinite" path="%s"/><image href="%s" x="%f" y="%f" width="%d" height="%d"%s /></g>`,
-			duration,
-			animationPath,
+		fmt.Fprintf(writer, `<image href="%s" x="%f" y="%f" width="%d" height="%d"%s class="animated-icon" style="%s"/>`,
 			html.EscapeString(connection.Icon.String()),
 			-iconCenterOffset,
 			-iconCenterOffset,
 			d2target.DEFAULT_ICON_SIZE,
 			d2target.DEFAULT_ICON_SIZE,
 			connectionIconClipPath,
+			iconStyle,
 		)
 	} else if connection.Icon != nil {
 		iconPos := connection.GetIconPosition()
@@ -2697,6 +2657,24 @@ func EmbedFonts(buf *bytes.Buffer, diagramHash, source string, fontFamily *d2fon
 }
 .animated-arrowhead {
 	animation: arrowheadpath 1s linear infinite;
+}
+`,
+	)
+
+	appendOnTrigger(
+		buf,
+		source,
+		[]string{
+			`animated-icon`,
+		},
+		`
+@keyframes iconpath {
+	to {
+		offset-distance: 100%;
+	}
+}
+.animated-icon {
+	animation: iconpath 1s linear infinite;
 }
 `,
 	)
