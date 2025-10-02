@@ -757,19 +757,23 @@ func computeRoughPaths(r jsrunner.JSRunner, js string) ([]roughPath, error) {
 	return extractRoughPaths(r)
 }
 
-type attrs struct {
+func ComputeRoughPaths(r jsrunner.JSRunner, js string) ([]roughPath, error) {
+	return computeRoughPaths(r, js)
+}
+
+type Attrs struct {
 	D string `json:"d"`
 }
 
-type style struct {
+type Style struct {
 	Stroke      string `json:"stroke,omitempty"`
 	StrokeWidth string `json:"strokeWidth,omitempty"`
 	Fill        string `json:"fill,omitempty"`
 }
 
 type roughPath struct {
-	Attrs attrs `json:"attrs"`
-	Style style `json:"style"`
+	Attrs Attrs `json:"attrs"`
+	Style Style `json:"style"`
 }
 
 func (rp roughPath) StyleCSS() string {
