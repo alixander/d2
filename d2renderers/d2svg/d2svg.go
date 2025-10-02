@@ -90,10 +90,11 @@ type RenderOpts struct {
 
 	// MasterID is passed when the diagram should use something other than its own hash for unique targeting
 	// Currently, that's when multi-boards are collapsed
-	MasterID    string
-	NoXMLTag    *bool
-	Salt        *string
-	OmitVersion *bool
+	MasterID        string
+	NoXMLTag        *bool
+	Salt            *string
+	OmitVersion     *bool
+	AnimateInterval int
 }
 
 func dimensions(diagram *d2target.Diagram, pad int) (left, top, width, height int) {
@@ -426,7 +427,7 @@ func renderLegendConnectionIcon(c d2target.Connection, x, y int, theme *d2themes
 	fmt.Fprintf(finalBuf, `<g transform="translate(%d, %d) scale(%f)">`,
 		x, y, 1.0/sizeFactor)
 
-	_, err := drawConnection(buf, legendHash, legendConn, markers, idToShape, nil, theme)
+	_, err := drawConnection(buf, legendHash, legendConn, markers, idToShape, nil, theme, 0)
 	if err != nil {
 		return "", err
 	}
@@ -1003,7 +1004,7 @@ func makeBorderLabelMask(labelPosition label.Position, labelTL *geo.Point, label
 	)
 }
 
-func drawConnection(writer io.Writer, diagramHash string, connection d2target.Connection, markers map[string]struct{}, idToShape map[string]d2target.Shape, jsRunner jsrunner.JSRunner, inlineTheme *d2themes.Theme) (labelMask string, _ error) {
+func drawConnection(writer io.Writer, diagramHash string, connection d2target.Connection, markers map[string]struct{}, idToShape map[string]d2target.Shape, jsRunner jsrunner.JSRunner, inlineTheme *d2themes.Theme, animateInterval int) (labelMask string, _ error) {
 	opacityStyle := ""
 	if connection.Opacity != 1.0 {
 		opacityStyle = fmt.Sprintf(" style='opacity:%f'", connection.Opacity)
@@ -1332,7 +1333,13 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 			connectionIconClipPath = fmt.Sprintf(` clip-path="inset(0 round %fpx)"`, connection.IconBorderRadius)
 		}
 
-		fmt.Fprintf(writer, `<g><animateMotion dur="3s" repeatCount="indefinite" path="%s"/><image href="%s" x="%f" y="%f" width="%d" height="%d"%s /></g>`,
+		duration := animateInterval
+		if duration == 0 {
+			duration = 1000
+		}
+
+		fmt.Fprintf(writer, `<g><animateMotion dur="%dms" repeatCount="indefinite" path="%s"/><image href="%s" x="%f" y="%f" width="%d" height="%d"%s /></g>`,
+			duration,
 			animationPath,
 			html.EscapeString(connection.Icon.String()),
 			-iconCenterOffset,
@@ -2793,6 +2800,7 @@ func Render(diagram *d2target.Diagram, opts *RenderOpts) ([]byte, error) {
 	themeID := d2themescatalog.NeutralDefault.ID
 	darkThemeID := DEFAULT_DARK_THEME
 	var scale *float64
+	animateInterval := 0
 	if opts != nil {
 		if opts.Pad != nil {
 			pad = int(*opts.Pad)
@@ -2809,8 +2817,13 @@ func Render(diagram *d2target.Diagram, opts *RenderOpts) ([]byte, error) {
 		}
 		darkThemeID = opts.DarkThemeID
 		scale = opts.Scale
+		animateInterval = opts.AnimateInterval
 	} else {
 		opts = &RenderOpts{}
+	}
+
+	if diagram.Config != nil && diagram.Config.AnimateInterval != nil {
+		animateInterval = int(*diagram.Config.AnimateInterval)
 	}
 
 	buf := &bytes.Buffer{}
@@ -2886,7 +2899,7 @@ func Render(diagram *d2target.Diagram, opts *RenderOpts) ([]byte, error) {
 	}
 	for _, obj := range allObjects {
 		if c, is := obj.(d2target.Connection); is {
-			labelMask, err := drawConnection(buf, isolatedDiagramHash, c, markers, idToShape, jsRunner, inlineTheme)
+			labelMask, err := drawConnection(buf, isolatedDiagramHash, c, markers, idToShape, jsRunner, inlineTheme, animateInterval)
 			if err != nil {
 				return nil, err
 			}

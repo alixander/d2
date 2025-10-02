@@ -48,6 +48,7 @@ type Config struct {
 	Pad                *int64          `json:"pad"`
 	Center             *bool           `json:"center"`
 	LayoutEngine       *string         `json:"layoutEngine"`
+	AnimateInterval    *int64          `json:"animateInterval,omitempty"`
 	ThemeOverrides     *ThemeOverrides `json:"themeOverrides,omitempty"`
 	DarkThemeOverrides *ThemeOverrides `json:"darkThemeOverrides,omitempty"`
 	// Data is a data structure for holding user-defined data
