@@ -1766,6 +1766,8 @@ vars: {
 }
 a -> b: {style.animated: true; icon: https://icons.terrastruct.com/essentials%2F213-alarm.svg}
 a -> c: {style.animated: true}
+a -> b: label {style.animated: true; icon: https://icons.terrastruct.com/essentials%2F213-alarm.svg}
+a -> c: label {style.animated: true}
 a <-> d: {style.animated: true; style.stroke-dash: 2}
 a <-> e: {style.animated: true}
 f <-> g: {style.animated: true}
