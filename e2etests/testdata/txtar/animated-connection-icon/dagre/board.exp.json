@@ -412,9 +412,9 @@
       "zIndex": 0
     },
     {
-      "id": "(a <-> c)[0]",
+      "id": "(a -> c)[0]",
       "src": "a",
-      "srcArrow": "triangle",
+      "srcArrow": "none",
       "dst": "c",
       "dstArrow": "triangle",
       "opacity": 1,
@@ -466,9 +466,9 @@
       "dst": "d",
       "dstArrow": "triangle",
       "opacity": 1,
-      "strokeDash": 0,
+      "strokeDash": 2,
       "strokeWidth": 2,
-      "stroke": "B1",
+      "stroke": "B2",
       "borderRadius": 10,
       "label": "",
       "fontSize": 16,

@@ -795,9 +795,6 @@ func (c Connection) CSSStyle() string {
 	out += fmt.Sprintf(`stroke-width:%d;`, c.StrokeWidth)
 	strokeDash := c.StrokeDash
 	animated := c.Animated && c.Icon == nil
-	if strokeDash == 0 && animated {
-		strokeDash = 5
-	}
 	if strokeDash != 0 {
 		dashSize, gapSize := svg.GetStrokeDashAttributes(float64(c.StrokeWidth), strokeDash)
 		out += fmt.Sprintf(`stroke-dasharray:%f,%f;`, dashSize, gapSize)

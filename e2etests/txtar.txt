@@ -1760,8 +1760,8 @@ a->b
 
 -- animated-connection-icon --
 a -> b: {style.animated: true; icon: https://icons.terrastruct.com/essentials%2F213-alarm.svg}
-a <-> c: {style.animated: true}
-a <-> d: {style.animated: true}
+a -> c: {style.animated: true}
+a <-> d: {style.animated: true; style.stroke-dash: 2}
 a <-> e: {style.animated: true}
 f <-> g: {style.animated: true}
 x -- x: {style.animated: true}
