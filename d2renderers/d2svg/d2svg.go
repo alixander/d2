@@ -1091,8 +1091,7 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 		}
 		fmt.Fprint(writer, out)
 
-		isBidirectional := (connection.DstArrow == d2target.NoArrowhead && connection.SrcArrow == d2target.NoArrowhead) || (connection.DstArrow != d2target.NoArrowhead && connection.SrcArrow != d2target.NoArrowhead)
-		animatedGrow := connection.Animated && connection.Icon == nil && connection.StrokeDash == 0 && !isBidirectional
+		animatedGrow := connection.Animated && connection.Icon == nil && connection.StrokeDash == 0 && !connection.IsBidirectional()
 		if animatedGrow && connection.DstArrow != d2target.NoArrowhead {
 			arrowJS, extraJS := d2sketch.ArrowheadJS(jsRunner, connection.DstArrow, connection.Stroke, connection.StrokeWidth)
 			if arrowJS != "" {
@@ -1136,17 +1135,16 @@ func drawConnection(writer io.Writer, diagramHash string, connection d2target.Co
 			fmt.Fprint(writer, arrowPaths)
 		}
 	} else {
-		isBidirectional := (connection.DstArrow == d2target.NoArrowhead && connection.SrcArrow == d2target.NoArrowhead) || (connection.DstArrow != d2target.NoArrowhead && connection.SrcArrow != d2target.NoArrowhead)
+		animatedGrow := connection.Animated && connection.Icon == nil && connection.StrokeDash == 0 && !connection.IsBidirectional()
 		animatedClass := ""
-		animatedGrow := connection.Animated && connection.Icon == nil && connection.StrokeDash == 0 && !isBidirectional
-		if connection.Animated && connection.Icon == nil && (connection.StrokeDash != 0 || isBidirectional) {
+		if connection.Animated && connection.Icon == nil && (connection.StrokeDash != 0 || connection.IsBidirectional()) {
 			animatedClass = " animated-connection"
 		} else if animatedGrow {
 			animatedClass = " animated-connection-grow"
 		}
 
 		// If connection is animated and bidirectional
-		if connection.Animated && connection.Icon == nil && isBidirectional {
+		if connection.Animated && connection.Icon == nil && connection.IsBidirectional() {
 			// There is no pure CSS way to animate bidirectional connections in two directions, so we split it up
 			path1, path2, err := svg.SplitPath(path, 0.5)
 

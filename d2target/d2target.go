@@ -789,14 +789,17 @@ func (c Connection) GetFontColor() string {
 	return color.N1
 }
 
+func (c Connection) IsBidirectional() bool {
+	return (c.SrcArrow == NoArrowhead) == (c.DstArrow == NoArrowhead)
+}
+
 func (c Connection) CSSStyle() string {
 	out := ""
 
 	out += fmt.Sprintf(`stroke-width:%d;`, c.StrokeWidth)
 	strokeDash := c.StrokeDash
 	animated := c.Animated && c.Icon == nil
-	bidirectional := (c.SrcArrow != NoArrowhead && c.DstArrow != NoArrowhead) || (c.SrcArrow == NoArrowhead && c.DstArrow == NoArrowhead)
-	if strokeDash == 0 && animated && bidirectional {
+	if strokeDash == 0 && animated && c.IsBidirectional() {
 		strokeDash = 5
 	}
 	if strokeDash != 0 {
