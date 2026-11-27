@@ -1,0 +1,47 @@
+name: Published D2 MSI upgrade and user PATH
+on:
+  push:
+    branches: [codex/windows-v010-public-msi]
+permissions:
+  contents: read
+jobs:
+  upgrade:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check published installers with separate machine and standard user sessions
+        shell: pwsh
+        run: ./check-msi.ps1
+  public-winget:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Install D2 from the public WinGet catalog
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+            Install-Module -Name Microsoft.WinGet.Client -Scope CurrentUser -Repository PSGallery -Force -AcceptLicense
+            Repair-WinGetPackageManager -AllUsers
+          }
+          $winget = (Get-Command winget.exe).Source
+          & $winget --version
+          for ($n=1; $n -le 10; $n++) {
+            & $winget source update --name winget --disable-interactivity
+            & $winget show --id Terrastruct.D2 --exact --version 0.10.0 --source winget --accept-source-agreements --disable-interactivity
+            if ($LASTEXITCODE -eq 0) { break }
+            if ($n -eq 10) { throw "Version 0.10.0 has not reached this runner's public WinGet catalog" }
+            Start-Sleep -Seconds 40
+          }
+          & $winget install --id Terrastruct.D2 --exact --version 0.10.0 --scope machine --source winget --accept-source-agreements --accept-package-agreements --silent --disable-interactivity
+          if ($LASTEXITCODE -ne 0) { throw "Public WinGet installation returned $LASTEXITCODE" }
+          $binary = Join-Path $env:ProgramFiles 'D2\d2.exe'
+          $version = (& $binary --version | Out-String).Trim()
+          if ($version -cne 'v0.10.0') { throw "Public WinGet CLI version is $version" }
+          Set-Content -LiteralPath "$env:RUNNER_TEMP\in.d2" -Value 'Client -> Service'
+          & $binary --layout=tala "$env:RUNNER_TEMP\in.d2" "$env:RUNNER_TEMP\out.svg"
+          if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath "$env:RUNNER_TEMP\out.svg" -Pattern '<svg' -Quiet)) { throw 'WinGet SVG smoke failed' }
+          Write-Host "Public WinGet source installed Terrastruct.D2; $binary reports $version, TALA rendered an SVG"
