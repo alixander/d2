@@ -24,9 +24,10 @@ $cred=[pscredential]::new("$env:COMPUTERNAME\$($user.Name)",$password)
 function Check-Standard([string]$Action,[string]$Expected='unused') {
     Write-Host "== $Action ($Expected) =="
     $params="-NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File `"$stage\standard-user.ps1`" -Action `"$Action`" -Expected $Expected"
-    $p=Start-Process powershell.exe -Credential $cred -LoadUserProfile -WorkingDirectory $stage -ArgumentList $params -Wait -PassThru
-    $log=Join-Path $env:SystemDrive "Users\$($user.Name)\AppData\Local\d2-acceptance.txt"
-    if (Test-Path $log) { Get-Content $log }
+    $stdout=Join-Path $env:RUNNER_TEMP 'd2-user-report.out'
+    $stderr=Join-Path $env:RUNNER_TEMP 'd2-user-report.err'
+    $p=Start-Process powershell.exe -Credential $cred -LoadUserProfile -UseNewEnvironment -WorkingDirectory $stage -ArgumentList $params -Wait -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    Get-Content -LiteralPath $stdout,$stderr
     if ($p.ExitCode -ne 0) { throw "Standard user step $Action returned $($p.ExitCode)" }
 }
 function Invoke-Machine([string]$Operation,[string]$File) {

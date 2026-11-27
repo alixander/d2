@@ -1,10 +1,34 @@
 param([string]$Action,[string]$Expected)
 $ErrorActionPreference='Stop'
-$log = Join-Path $env:LOCALAPPDATA 'd2-acceptance.txt'
-Start-Transcript -Path $log -Force
 try {
     $me = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
     if ($me.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw "Expected a non-admin test user" }
+    # Ask Windows for a newly logged-on user's environment, as distinct from the
+    # runner service's long-lived environment. No PATH components are composed here.
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class D2LogonEnvironment {
+    [DllImport("userenv.dll", SetLastError = true)]
+    public static extern bool CreateEnvironmentBlock(out IntPtr block, IntPtr token, bool inherit);
+    [DllImport("userenv.dll")]
+    public static extern bool DestroyEnvironmentBlock(IntPtr block);
+}
+'@
+    $block=[IntPtr]::Zero
+    if (-not [D2LogonEnvironment]::CreateEnvironmentBlock([ref]$block,[Security.Principal.WindowsIdentity]::GetCurrent().Token,$false)) { throw 'Could not create logon environment' }
+    try {
+        $cursor=$block
+        while ($entry=[Runtime.InteropServices.Marshal]::PtrToStringUni($cursor)) {
+            $sep=$entry.IndexOf('=')
+            if ($sep -gt 0) {
+                $key=$entry.Substring(0,$sep)
+                $value=$entry.Substring($sep+1)
+                [Environment]::SetEnvironmentVariable($key,$value,'Process')
+            }
+            $cursor=[IntPtr]::Add($cursor,2*($entry.Length+1))
+        }
+    } finally { [void][D2LogonEnvironment]::DestroyEnvironmentBlock($block) }
     $userD2 = Join-Path $env:LOCALAPPDATA 'Programs\D2'
     $machineD2 = Join-Path $env:ProgramFiles 'D2'
     if ($Action -eq 'install' -or $Action -eq 'remove') {
@@ -41,4 +65,4 @@ try {
             foreach ($exe in $resolved) { Write-Host "$exe reports $(& $exe --version)" }
         } elseif ($whereStatus -eq 0) { throw 'where.exe unexpectedly succeeded after complete removal' }
     }
-} catch { Write-Host $_; exit 1 } finally { Stop-Transcript }
+} catch { Write-Host $_; exit 1 }
